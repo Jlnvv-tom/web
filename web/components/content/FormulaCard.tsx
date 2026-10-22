@@ -2,8 +2,14 @@ import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import type { FormulaDef } from '@/engine/spec';
 
-/** 公式卡：KaTeX 在服务端渲染成静态 HTML，零客户端 JS */
-export function FormulaCard({ formulas }: { formulas: FormulaDef[] }) {
+/**
+ * 公式卡：KaTeX 在服务端渲染成静态 HTML，零客户端 JS
+ *
+ * `mathml` 是给**离线单文件**用的。KaTeX 的 HTML 输出要靠自己的 CSS 和
+ * 一整套 woff2 字体（内联进单文件要额外 600 KB+），而 MathML 由浏览器
+ * 原生渲染，零额外资源。代价是字形略逊，离线场景下这个交换是值的。
+ */
+export function FormulaCard({ formulas, mathml = false }: { formulas: FormulaDef[]; mathml?: boolean }) {
   if (!formulas.length) return null;
 
   return (
@@ -23,7 +29,7 @@ export function FormulaCard({ formulas }: { formulas: FormulaDef[] }) {
                   displayMode: true,
                   throwOnError: false,
                   strict: false,
-                  output: 'html',
+                  output: mathml ? 'mathml' : 'html',
                 }),
               }}
             />

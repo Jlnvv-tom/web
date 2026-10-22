@@ -17,8 +17,19 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
+# 统一在"去掉沙箱 FS 钩子"的环境里跑 node
+NODE_BIN="${NODE_BIN:-node}"
+run_node() {
+  env -u NODE_OPTIONS \
+      -u CODEBUDDY_BROKERED_FS_HOOK_ENABLED \
+      -u CODEBUDDY_SAFE_DELETE_BROKER_DELETE \
+      "$NODE_BIN" "$@"
+}
+
+# 离线单文件导出的运行时先产出到 public/standalone/，Next 会原样拷进 out/。
+# 必须放在 next build 之前，否则导出的 HTML 里会引用到上一版的运行时。
+echo "==> standalone runtime"
+run_node scripts/build-standalone.mjs
+
 echo "==> next build"
-env -u NODE_OPTIONS \
-    -u CODEBUDDY_BROKERED_FS_HOOK_ENABLED \
-    -u CODEBUDDY_SAFE_DELETE_BROKER_DELETE \
-    node ./node_modules/next/dist/bin/next build
+run_node ./node_modules/next/dist/bin/next build

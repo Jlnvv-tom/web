@@ -2,11 +2,28 @@
 
 import type { ParamDef } from '@/engine/spec';
 import type { PlayerStoreApi } from '@/engine/store';
+import { getTelemetry, type ParamValue } from '@/engine/telemetry';
 
-export function ParamPanel({ spec, store }: { spec: { params: ParamDef[] }; store: PlayerStoreApi }) {
+export function ParamPanel({
+  spec,
+  store,
+}: {
+  spec: { meta: { id: string }; params: ParamDef[] };
+  store: PlayerStoreApi;
+}) {
   const params = store((s) => s.params);
   const setParam = store((s) => s.setParam);
   const reset = store((s) => s.resetParams);
+
+  /**
+   * 改参数的唯一入口。埋点在这里而不是 store 里，是因为：
+   * 脚本自动调参（applyScriptParams）和练习「验证」（applyParams）不算用户调参，
+   * 混进来会把「平均调参次数」这个核心指标稀释掉。
+   */
+  const change = (key: string, from: ParamValue, to: ParamValue) => {
+    getTelemetry().trackParam(spec.meta.id, key, from, to);
+    setParam(key, to);
+  };
 
   return (
     <section className="panel p-3">
@@ -44,7 +61,7 @@ export function ParamPanel({ spec, store }: { spec: { params: ParamDef[] }; stor
                   max={p.max}
                   step={p.step}
                   value={v}
-                  onChange={(e) => setParam(p.key, Number(e.target.value))}
+                  onChange={(e) => change(p.key, v, Number(e.target.value))}
                   className="range-input w-full"
                 />
                 {p.hint ? <p className="mt-1 text-[10px] leading-relaxed text-slate-600">{p.hint}</p> : null}
@@ -61,7 +78,7 @@ export function ParamPanel({ spec, store }: { spec: { params: ParamDef[] }; stor
                   type="button"
                   role="switch"
                   aria-checked={v}
-                  onClick={() => setParam(p.key, !v)}
+                  onClick={() => change(p.key, v, !v)}
                   className={`relative h-[18px] w-[34px] rounded-full transition ${
                     v ? 'bg-cyan-400/80' : 'bg-white/12'
                   }`}
@@ -84,7 +101,7 @@ export function ParamPanel({ spec, store }: { spec: { params: ParamDef[] }; stor
                 {p.options.map((o) => (
                   <button
                     key={o.value}
-                    onClick={() => setParam(p.key, o.value)}
+                    onClick={() => change(p.key, v, o.value)}
                     className={`rounded-full border px-2.5 py-1 text-[10.5px] transition ${
                       v === o.value
                         ? 'border-cyan-400/60 bg-cyan-400/15 text-cyan-200'

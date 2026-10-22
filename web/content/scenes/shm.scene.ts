@@ -25,7 +25,17 @@ export const shmScene: SceneSpec = {
 
   camera: { position: [1.0, 0.8, 1.2], target: [0, 0.5, 0], fov: 45 },
 
-  world: { gridSize: 5, gridDivisions: 20, showGrid: true, showAxis: false },
+  // 装饰层：拖摆长/振幅时，摆球挤压回弹
+  decor: { subject: 'bob', squash: 0.07 },
+
+  // 摆球的最低点在台面上方一点点：影子贴着摆动轨迹走，是"简谐"最好懂的视觉线索（M3 · W1）
+  world: {
+    gridSize: 5,
+    gridDivisions: 20,
+    showGrid: true,
+    showAxis: false,
+    stage: { kind: 'table', y: -0.07, size: 2.60, contact: 0.30 },
+  },
 
   params: [
     {
@@ -112,7 +122,21 @@ export const shmScene: SceneSpec = {
     // 摆杆只在单摆模式有值、弹簧只在弹簧模式有值，另一支求解器返回空数组
     { type: 'polyline', id: 'rod', bind: 'rod', color: '#94a3b8', width: 2.2, optional: true },
     { type: 'polyline', id: 'spring', bind: 'spring', color: '#fbbf24', width: 1.6, optional: true },
-    { type: 'particle', id: 'bob', bind: 'pos', radius: 0.075, color: '#facc15', glow: true },
+    /* 摆球：磨砂玻璃。半透明能让"摆球在台面上的影子"透出来，
+       影子与摆球同步游走是简谐最好的视觉线索（计划 §9.5） */
+    { type: 'particle', id: 'bob', bind: 'pos', radius: 0.075, material: 'glass', segments: 32 },
+
+    /* 参照物：一支铅笔（木杆 + 金属箍用两段盒子拼） */
+    {
+      type: 'box',
+      id: 'ref-pencil',
+      size: [0.42, 0.009, 0.014],
+      position: [-0.92, -0.064, 0.64],
+      rotation: [0, 0.6, 0],
+      round: 0.004,
+      material: 'wood',
+      color: '#D9A24A',
+    },
     { type: 'trail', id: 'trail', bind: 'trail', color: '#22d3ee', width: 2.5 },
 
     /* ---------- 受力与状态 ---------- */

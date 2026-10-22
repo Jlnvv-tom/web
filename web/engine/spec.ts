@@ -25,6 +25,8 @@ import type { Vec3 } from './vec';
    基础
    ============================================================ */
 
+import type { MaterialKind } from './materials';
+
 export const zVec3 = z.tuple([z.number(), z.number(), z.number()]);
 
 export type Stage = 'junior' | 'senior';
@@ -86,6 +88,10 @@ export type ObjectDef = (
       glow?: boolean;
       /** 拖尾开关 */
       trace?: boolean;
+      /** 材质预设。给摆球/钩码这类"实物球"用；带电粒子仍应保持发光点 */
+      material?: MaterialKind;
+      /** 球体分段数，默认 28；小物体可以降到 12 省顶点 */
+      segments?: number;
     }
   /** 矢量箭头（速度、力、场强…） */
   | {
@@ -231,6 +237,12 @@ export type ObjectDef = (
       clearcoat?: number;
       /** 环境贴图反射强度（默认 1.1）。同样是近距离场景过曝的元凶之一。 */
       envMapIntensity?: number;
+      /**
+       * 材质预设（M3 · W2），见 engine/materials.ts。
+       * 只给**有体积的实物**用：矢量箭头/场线/轨迹是物理量的图形化，
+       * 给它们贴木纹会让"这条线代表 E"这个约定失效。
+       */
+      material?: MaterialKind;
     }
   /** 带箭头的线段（物高 / 像高） */
   | {
@@ -360,11 +372,60 @@ export type SolverKind =
   | 'buoyancy'
   | 'lever';
 
+/**
+ * 展台（M3 · 见 docs/m3-plan.md §4）
+ *
+ * 设计要点：**这是一个可选的声明式字段，不写就完全退回 M2 的样子**。
+ * 12 个场景逐个迁移，任何时候中断都不会留下半坏的状态。
+ *
+ * `kind: 'none'` 也是合法值，用于天体这类"本来就该是黑底深空"的场景——
+ * 规范必须允许例外，否则会被硬套成四不像。
+ */
+export type StageDef = {
+  kind: 'none' | 'table';
+  /** 台面高度（米，即台面上表面的 y），默认 0 */
+  y?: number;
+  /** 台面半边长（米），默认按相机距离推 */
+  size?: number;
+  /** 台面颜色，默认浅胡桃木 */
+  surface?: string;
+  /** 画布内背景色（同时用作雾色），默认暖黑 */
+  backdrop?: string;
+  /** 是否投射阴影，默认 true */
+  shadows?: boolean;
+  /** 接触阴影半径（米）。小物体靠真实投影压不住，需要这一层 */
+  contact?: number;
+  /** 台面材质，默认 wood（带程序化木纹） */
+  material?: MaterialKind;
+};
+
+/**
+ * 装饰层（M3 · W3）
+ *
+ * **这里的所有东西都不得影响物理。** 它们是"手感"，不是"模型"。
+ * 契约测试会验证：把 decor 整个删掉，`sample(t)` 的输出必须逐值相同。
+ */
+export type DecorDef = {
+  /** 参数变化时做挤压反馈的对象 id（一般是场景的主角） */
+  subject?: string;
+  /** 挤压幅度（0–0.2），默认 0.07 */
+  squash?: number;
+};
+
 export type SceneSpec = {
   meta: MetaDef;
   camera: { position: Vec3; target: Vec3; fov?: number };
   /** 世界尺度提示：网格半宽等 */
-  world: { gridSize?: number; gridDivisions?: number; showGrid?: boolean; showAxis?: boolean };
+  /** 装饰层：只影响观感，不影响任何物理量 */
+  decor?: DecorDef;
+  world: {
+    gridSize?: number;
+    gridDivisions?: number;
+    showGrid?: boolean;
+    showAxis?: boolean;
+    /** 展台（M3 · W1）。不写 = 保持原样（黑底虚空），零回归 */
+    stage?: StageDef;
+  };
   params: ParamDef[];
   solver: { kind: SolverKind; options?: Record<string, unknown> };
   objects: ObjectDef[];
@@ -469,11 +530,29 @@ export const zSceneSpec = z.object({
     target: zVec3,
     fov: z.number().optional(),
   }),
+  decor: z
+    .object({
+      subject: z.string().optional(),
+      squash: z.number().optional(),
+    })
+    .optional(),
   world: z.object({
     gridSize: z.number().optional(),
     gridDivisions: z.number().optional(),
     showGrid: z.boolean().optional(),
     showAxis: z.boolean().optional(),
+    stage: z
+      .object({
+        kind: z.enum(['none', 'table']),
+        y: z.number().optional(),
+        size: z.number().positive().optional(),
+        surface: z.string().optional(),
+        backdrop: z.string().optional(),
+        shadows: z.boolean().optional(),
+        contact: z.number().positive().optional(),
+        material: z.string().optional(),
+      })
+      .optional(),
   }),
   params: z.array(zParam),
   solver: z.object({

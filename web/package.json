@@ -7,6 +7,8 @@
     "dev": "next dev",
     "build": "bash scripts/build.sh",
     "build:next": "next build",
+    "build:standalone": "node scripts/build-standalone.mjs",
+    "build:harness": "node harness/build.mjs",
     "clean": "rm -rf .next out",
     "start": "next start",
     "lint": "next lint",

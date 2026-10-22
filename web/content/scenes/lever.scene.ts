@@ -36,7 +36,19 @@ export const leverScene: SceneSpec = {
 
   camera: { position: [0.03, 0.26, 0.86], target: [0, -0.08, 0], fov: 45 },
 
-  world: { gridSize: 2.4, gridDivisions: 12, showGrid: true, showAxis: false },
+  // 装饰层：拖钩码质量时，木杆挤压一下（杆是主角，而不是某个钩码）
+  decor: { subject: 'bar', squash: 0.05 },
+
+  // 支点落在台面上（y = 0），杆与钩码才有"压下去"的重量感（M3 · W1）
+  world: {
+    gridSize: 2.4,
+    gridDivisions: 12,
+    showGrid: true,
+    showAxis: false,
+    // 0.58：既要看到台面边缘（"微型展台"的边界感），也不能让台面铺满整个视野——
+    // 铺满时画面就是一大片同色平面，比原来的黑底更没信息量。
+    stage: { kind: 'table', y: 0, size: 0.5, contact: 0.34 },
+  },
 
   params: [
     {
@@ -123,9 +135,23 @@ export const leverScene: SceneSpec = {
     { type: 'polyline', id: 'bar', bind: 'bar', color: '#38bdf8', width: 9 },
 
     /* ---------- 两端挂点 ---------- */
-    { type: 'particle', id: 'eff-end', bind: 'effEnd', radius: 0.022, color: '#4ade80', glow: true },
-    { type: 'particle', id: 'res-end', bind: 'resEnd', radius: 0.022, color: '#fb923c', glow: true },
-    { type: 'particle', id: 'pivot-pt', bind: 'pivot', radius: 0.02, color: '#e2e8f0', glow: true },
+    /* 钩码做成金属球：颜色编码交给力矢量（F₁ 绿 / F₂ 橙），
+       物体本身不必染成绿的——"绿色的铁球"只会让人出戏 */
+    { type: 'particle', id: 'eff-end', bind: 'effEnd', radius: 0.028, material: 'metal', segments: 20 },
+    { type: 'particle', id: 'res-end', bind: 'resEnd', radius: 0.028, material: 'metal', segments: 20 },
+    { type: 'particle', id: 'pivot-pt', bind: 'pivot', radius: 0.022, material: 'metal', segments: 16 },
+
+    /* 参照物：一把木尺横在台面上 */
+    {
+      type: 'box',
+      id: 'ref-ruler',
+      size: [0.3, 0.007, 0.026],
+      position: [-0.4, 0.004, 0.3],
+      rotation: [0, 0.55, 0],
+      round: 0.002,
+      material: 'wood',
+      color: '#E9D6B4',
+    },
 
     /* ---------- 力矢量 ---------- */
     {

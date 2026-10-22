@@ -8,6 +8,9 @@ import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.j
 import type { ObjectDef, SceneState } from '@/engine/spec';
 import type { Vec3 } from '@/engine/vec';
 import { Arrow, StaticArrow } from './Arrow';
+import { needsTransmission, resolveMaterial } from '@/engine/materials';
+import { getQuality } from './quality';
+import { textureFor, tiledTexture } from './textures';
 
 export type StateRef = { current: SceneState };
 
@@ -173,6 +176,10 @@ function Particle({
   const halo = useRef<THREE.Sprite>(null);
   const tex = useMemo(() => getGlowTexture(), []);
 
+  // 指定了材质 = 这是个"实物球"（摆球、钩码），走 PBR；否则是发光标记点
+  const m = def.material ? resolveMaterial(def.material) : null;
+  const seg = def.segments ?? 28;
+
   useFrame(() => {
     const p = stateRef.current.points[bind];
     if (!p) return;
@@ -182,17 +189,35 @@ function Particle({
 
   return (
     <group>
-      <mesh ref={mesh}>
-        <sphereGeometry args={[r, 28, 20]} />
-        <meshStandardMaterial
-          color={def.color ?? '#ff8a3d'}
-          emissive={def.color ?? '#ff8a3d'}
-          emissiveIntensity={0.55}
-          metalness={0.3}
-          roughness={0.35}
-        />
+      {/* castShadow：展台场景里，摆球/钩码是唯一能投出影子的实体，
+          没有它"万物有落点"就只剩托盘的方块成立 */}
+      <mesh ref={mesh} castShadow={!!m}>
+        <sphereGeometry args={[r, seg, Math.max(8, Math.round(seg * 0.7))]} />
+        {m ? (
+          <meshPhysicalMaterial
+            color={m.color}
+            roughness={m.roughness}
+            metalness={m.metalness}
+            clearcoat={m.clearcoat}
+            clearcoatRoughness={m.clearcoatRoughness}
+            envMapIntensity={m.envMapIntensity}
+            transmission={getQuality() === 'high' ? m.transmission : 0}
+            thickness={m.thickness}
+            ior={m.ior}
+            transparent={getQuality() !== 'high' && needsTransmission(m)}
+            opacity={getQuality() !== 'high' && needsTransmission(m) ? m.fallbackOpacity : 1}
+          />
+        ) : (
+          <meshStandardMaterial
+            color={def.color ?? '#ff8a3d'}
+            emissive={def.color ?? '#ff8a3d'}
+            emissiveIntensity={0.55}
+            metalness={0.3}
+            roughness={0.35}
+          />
+        )}
       </mesh>
-      {def.glow !== false && (
+      {!m && def.glow !== false && (
         <sprite ref={halo} scale={[r * 7, r * 7, 1]}>
           <spriteMaterial
             map={tex}
@@ -651,18 +676,47 @@ function BoxObject({
     }
   });
 
+  /**
+   * 材质解析：预设打底 + 场景显式值覆盖。
+   *
+   * 这里**没有**任何 `if (def.id === ...)`——材质完全由数据决定，
+   * 这是宪法第六条（内容即数据）在渲染层的落地。
+   */
+  const m = resolveMaterial(def.material, {
+    color: def.color,
+    roughness: def.roughness,
+    metalness: def.metalness,
+    clearcoat: def.clearcoat,
+    envMapIntensity: def.envMapIntensity,
+    opacity: def.opacity,
+  });
+  const highQuality = getQuality() === 'high';
+  const useTransmission = highQuality && needsTransmission(m);
+  const base = textureFor(m.texture);
+  const map = useMemo(
+    () => (base ? tiledTexture(base, Math.max(w, d), Math.max(h, d)) : null),
+    [base, w, h, d]
+  );
+  // 低画质档位不能用 transmission，退回半透明；两者不能同时开，否则会双重变淡
+  const fallback = !highQuality && needsTransmission(m);
+  const opacity = useTransmission ? 1 : fallback ? m.fallbackOpacity : m.opacity;
+
   return (
     <group ref={group} position={typeof def.position === 'string' ? [0, 0, 0] : def.position} rotation={def.rotation ?? [0, 0, 0]}>
       <mesh geometry={geom} castShadow receiveShadow>
         <meshPhysicalMaterial
-          color={def.color ?? '#8b98a8'}
-          metalness={def.metalness ?? 0.85}
-          roughness={def.roughness ?? 0.3}
-          clearcoat={def.clearcoat ?? 0.4}
-          clearcoatRoughness={0.25}
-          transparent={(def.opacity ?? 1) < 1}
-          opacity={def.opacity ?? 1}
-          envMapIntensity={def.envMapIntensity ?? 1.1}
+          color={m.color}
+          map={map ?? undefined}
+          metalness={m.metalness}
+          roughness={m.roughness}
+          clearcoat={m.clearcoat}
+          clearcoatRoughness={m.clearcoatRoughness}
+          envMapIntensity={m.envMapIntensity}
+          transmission={useTransmission ? m.transmission : 0}
+          thickness={m.thickness}
+          ior={m.ior}
+          transparent={opacity < 1}
+          opacity={opacity}
         />
       </mesh>
       {def.emissive ? (
