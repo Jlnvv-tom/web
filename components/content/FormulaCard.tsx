@@ -1,0 +1,38 @@
+import katex from 'katex';
+import 'katex/dist/katex.min.css';
+import type { FormulaDef } from '@/engine/spec';
+
+/** 公式卡：KaTeX 在服务端渲染成静态 HTML，零客户端 JS */
+export function FormulaCard({ formulas }: { formulas: FormulaDef[] }) {
+  if (!formulas.length) return null;
+
+  return (
+    <section className="panel p-4">
+      <header className="mb-3 flex items-center gap-2">
+        <h2 className="text-[11px] font-bold tracking-[0.18em] text-slate-300">核心公式</h2>
+        <span className="h-px flex-1 bg-gradient-to-r from-cyan-400/30 to-transparent" />
+      </header>
+
+      <div className="space-y-3">
+        {formulas.map((f, i) => (
+          <div key={i} className="rounded-xl border border-white/6 bg-white/[0.025] px-3 py-2.5">
+            <div
+              className="formula text-[15px] text-slate-100"
+              dangerouslySetInnerHTML={{
+                __html: katex.renderToString(f.tex, {
+                  displayMode: true,
+                  throwOnError: false,
+                  strict: false,
+                  output: 'html',
+                }),
+              }}
+            />
+            {f.caption ? (
+              <p className="mt-1.5 text-[11px] leading-relaxed text-slate-500">{f.caption}</p>
+            ) : null}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}

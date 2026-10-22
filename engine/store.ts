@@ -1,0 +1,112 @@
+'use client';
+
+import { create } from 'zustand';
+import type { ParamValues, SceneSpec } from '@/engine/spec';
+import { defaultParams } from '@/engine/spec';
+
+export type HudSnapshot = {
+  scalars: Record<string, number>;
+  meta: Record<string, number | string | boolean>;
+  series: Record<string, number[]>;
+};
+
+type PlayerStore = {
+  /** 参数（用户可调） */
+  params: ParamValues;
+  setParam: (key: string, value: number | boolean | string) => void;
+  /** 用户点击"验证"时应用参数：重置时间轴 */
+  applyParams: (patch: ParamValues) => void;
+  /** 讲解脚本自动应用参数：**不**重置时间轴（否则会打断播放） */
+  applyScriptParams: (patch: ParamValues) => void;
+  resetParams: () => void;
+
+  /** 播放控制 */
+  playing: boolean;
+  speed: number;
+  /** UI 可见的播放头（由 3D 循环以 ~20Hz 推送，避免 60fps 重渲染） */
+  time: number;
+  setPlaying: (v: boolean) => void;
+  togglePlaying: () => void;
+  setSpeed: (v: number) => void;
+  pushTime: (t: number) => void;
+  /** 请求跳转（3D 循环消费后清空） */
+  seekRequest: number | null;
+  requestSeek: (t: number) => void;
+  consumeSeek: () => number | null;
+
+  /** 讲解步骤索引（-1 表示不在任何一步） */
+  stepIndex: number;
+  setStepIndex: (i: number) => void;
+  /** 暂停在脚本步骤上等待用户继续 */
+  waiting: boolean;
+  setWaiting: (v: boolean) => void;
+
+  /** 交互 */
+  selectedId: string | null;
+  select: (id: string | null) => void;
+  labelsVisible: boolean;
+  toggleLabels: () => void;
+  showGhost: boolean;
+  toggleGhost: () => void;
+  hud: HudSnapshot;
+  pushHud: (h: HudSnapshot) => void;
+};
+
+export const createPlayerStore = (spec: SceneSpec) =>
+  create<PlayerStore>((set, get) => ({
+    params: defaultParams(spec.params),
+    setParam: (key, value) =>
+      set((s) => {
+        const next = { ...s.params, [key]: value };
+        return { params: next, time: 0, seekRequest: 0, stepIndex: -1, waiting: false };
+      }),
+    applyParams: (patch) =>
+      set((s) => ({
+        params: { ...s.params, ...patch },
+        time: 0,
+        seekRequest: 0,
+        stepIndex: -1,
+        waiting: false,
+      })),
+    applyScriptParams: (patch) =>
+      set((s) => ({ params: { ...s.params, ...patch } })),
+    resetParams: () =>
+      set({
+        params: defaultParams(spec.params),
+        time: 0,
+        seekRequest: 0,
+        stepIndex: -1,
+        waiting: false,
+      }),
+
+    playing: true,
+    speed: 1,
+    time: 0,
+    setPlaying: (v) => set({ playing: v }),
+    togglePlaying: () => set((s) => ({ playing: !s.playing })),
+    setSpeed: (v) => set({ speed: v }),
+    pushTime: (t) => set({ time: t }),
+    seekRequest: null,
+    requestSeek: (t) => set({ seekRequest: t, time: t, waiting: false }),
+    consumeSeek: () => {
+      const v = get().seekRequest;
+      if (v !== null) set({ seekRequest: null });
+      return v;
+    },
+
+    stepIndex: -1,
+    setStepIndex: (i) => set({ stepIndex: i }),
+    waiting: false,
+    setWaiting: (v) => set({ waiting: v }),
+
+    selectedId: null,
+    select: (id) => set({ selectedId: id }),
+    labelsVisible: true,
+    toggleLabels: () => set((s) => ({ labelsVisible: !s.labelsVisible })),
+    showGhost: true,
+    toggleGhost: () => set((s) => ({ showGhost: !s.showGhost })),
+    hud: { scalars: {}, meta: {}, series: {} },
+    pushHud: (h) => set({ hud: h }),
+  }));
+
+export type PlayerStoreApi = ReturnType<typeof createPlayerStore>;

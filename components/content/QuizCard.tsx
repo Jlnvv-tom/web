@@ -1,0 +1,119 @@
+'use client';
+
+import { useState } from 'react';
+import { Check, PlayCircle, RotateCcw, Target, X } from 'lucide-react';
+import type { QuizDef } from '@/engine/spec';
+import type { PlayerStoreApi } from '@/engine/store';
+
+/**
+ * 预测 → 观察 → 解释（POE）
+ *
+ * 这是本产品与"看视频"的根本区别：学生必须先押一个答案，
+ * 再让 3D 场景把参数改成他选的那一种，亲眼看到结果。
+ */
+export function QuizCard({ quizzes, store }: { quizzes: QuizDef[]; store: PlayerStoreApi }) {
+  const [answers, setAnswers] = useState<Record<number, number>>({});
+  const [revealed, setRevealed] = useState<Record<number, boolean>>({});
+
+  if (!quizzes.length) return null;
+
+  const choose = (qi: number, oi: number) => {
+    setAnswers((a) => ({ ...a, [qi]: oi }));
+    setRevealed((r) => ({ ...r, [qi]: true }));
+  };
+
+  const verify = (q: QuizDef) => {
+    if (!q.applyParams) return;
+    store.getState().applyParams(q.applyParams);
+    store.getState().setPlaying(true);
+  };
+
+  return (
+    <section className="panel p-4">
+      <header className="mb-3 flex items-center gap-2">
+        <Target size={13} className="text-cyan-400" />
+        <h2 className="text-[11px] font-bold tracking-[0.18em] text-slate-300">预测与验证</h2>
+        <span className="ml-1 rounded-full bg-cyan-400/12 px-2 py-0.5 text-[9.5px] font-semibold text-cyan-300/90">
+          先猜，再看
+        </span>
+      </header>
+
+      <div className="space-y-4">
+        {quizzes.map((q, qi) => {
+          const picked = answers[qi];
+          const show = revealed[qi];
+          const correct = picked === q.answer;
+
+          return (
+            <article key={qi} className="rounded-xl border border-white/6 bg-white/[0.025] p-3.5">
+              <p className="mb-2.5 text-[12.5px] leading-relaxed text-slate-200">
+                <span className="mr-1.5 font-mono text-[11px] text-cyan-400/80">Q{qi + 1}</span>
+                {q.prompt}
+              </p>
+
+              <div className="grid gap-1.5 sm:grid-cols-2">
+                {q.options.map((opt, oi) => {
+                  const isPicked = picked === oi;
+                  const isAnswer = q.answer === oi;
+                  let cls = 'border-white/10 text-slate-300 hover:border-white/25 hover:bg-white/5';
+                  if (show) {
+                    if (isAnswer) cls = 'border-emerald-400/50 bg-emerald-400/12 text-emerald-200';
+                    else if (isPicked) cls = 'border-red-400/40 bg-red-400/10 text-red-200';
+                    else cls = 'border-white/6 text-slate-500';
+                  }
+                  return (
+                    <button
+                      key={oi}
+                      onClick={() => choose(qi, oi)}
+                      className={`flex items-center justify-between gap-2 rounded-lg border px-2.5 py-2 text-left text-[11.5px] transition ${cls}`}
+                    >
+                      <span>{opt}</span>
+                      {show && isAnswer ? <Check size={12} className="shrink-0" /> : null}
+                      {show && isPicked && !isAnswer ? <X size={12} className="shrink-0" /> : null}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {show ? (
+                <div className="mt-2.5">
+                  <p
+                    className={`rounded-lg px-2.5 py-2 text-[11px] leading-relaxed ${
+                      correct ? 'bg-emerald-400/8 text-emerald-200/85' : 'bg-amber-400/8 text-amber-200/85'
+                    }`}
+                  >
+                    <b className="font-semibold">{correct ? '判断正确 · ' : '再看一眼 · '}</b>
+                    {q.explain}
+                  </p>
+
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {q.applyParams ? (
+                      <button onClick={() => verify(q)} className="btn btn-primary !px-2.5 !py-1 !text-[11px]">
+                        <PlayCircle size={12} />
+                        在 3D 里验证这个条件
+                      </button>
+                    ) : null}
+                    <button
+                      onClick={() => {
+                        setRevealed((r) => ({ ...r, [qi]: false }));
+                        setAnswers((a) => {
+                          const n = { ...a };
+                          delete n[qi];
+                          return n;
+                        });
+                      }}
+                      className="btn !px-2.5 !py-1 !text-[11px]"
+                    >
+                      <RotateCcw size={12} />
+                      重做
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
+}

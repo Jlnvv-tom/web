@@ -1,0 +1,47 @@
+{
+  "name": "physics3d-web",
+  "version": "0.1.0",
+  "private": true,
+  "description": "初高中物理 3D 概念讲解库 —— 可旋转、可调参、有讲解",
+  "scripts": {
+    "dev": "next dev",
+    "build": "bash scripts/build.sh",
+    "build:next": "next build",
+    "clean": "rm -rf .next out",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "format": "prettier --write \"{app,components,engine,content,scripts}/**/*.{ts,tsx,css,json}\""
+  },
+  "dependencies": {
+    "@react-three/drei": "^10.3.0",
+    "@react-three/fiber": "^9.4.0",
+    "clsx": "^2.1.1",
+    "framer-motion": "^12.23.0",
+    "katex": "^0.16.22",
+    "lucide-react": "^0.469.0",
+    "next": "^15.5.4",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "tailwind-merge": "^3.3.0",
+    "three": "^0.186.1",
+    "zod": "^3.24.1",
+    "zustand": "^5.0.6"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.0",
+    "@types/katex": "^0.16.7",
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "@types/three": "^0.186.0",
+    "eslint": "^9.39.0",
+    "eslint-config-next": "^15.5.4",
+    "prettier": "^3.6.0",
+    "tailwindcss": "^4.1.0",
+    "typescript": "^5.7.2",
+    "vitest": "^3.2.0"
+  }
+}
