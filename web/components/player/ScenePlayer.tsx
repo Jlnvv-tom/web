@@ -16,8 +16,8 @@ const SceneCanvas = dynamic(
     loading: () => (
       <div className="grid h-full w-full place-items-center">
         <div className="flex flex-col items-center gap-3">
-          <div className="h-9 w-9 animate-spin rounded-full border-2 border-cyan-400/20 border-t-cyan-400" />
-          <span className="text-[11px] text-slate-500">正在编译三维场景…</span>
+          <div className="h-9 w-9 animate-spin rounded-full border-2 border-cyan-700/25 border-t-cyan-400" />
+          <span className="text-[11px] text-stone-600">正在编译三维场景…</span>
         </div>
       </div>
     ),
@@ -65,7 +65,7 @@ export function ScenePlayer() {
             <span className="chip !text-[10px]">
               {spec.meta.dimension === '3d' ? '真 3D' : spec.meta.dimension === '2d' ? '2D 交互' : '2.5D'}
             </span>
-            <span className="rounded-full border border-white/10 bg-black/45 px-2 py-[3px] text-[10px] text-slate-400 backdrop-blur">
+            <span className="rounded-full border border-stone-900/14 bg-white/85 px-2 py-[3px] text-[10px] text-stone-600 backdrop-blur">
               左键旋转 · 滚轮缩放 · 右键平移
             </span>
           </div>
@@ -76,8 +76,8 @@ export function ScenePlayer() {
               title={labelsVisible ? '隐藏对象标注' : '显示对象标注'}
               className={`grid h-7 w-7 place-items-center rounded-lg border backdrop-blur transition ${
                 labelsVisible
-                  ? 'border-cyan-400/40 bg-cyan-400/15 text-cyan-300'
-                  : 'border-white/10 bg-black/45 text-slate-500 hover:text-slate-300'
+                  ? 'border-cyan-700/40 bg-cyan-600/12 text-cyan-800'
+                  : 'border-stone-900/14 bg-white/85 text-stone-600 hover:text-stone-700'
               }`}
             >
               <Tag size={13} />
@@ -85,20 +85,20 @@ export function ScenePlayer() {
           </div>
 
           {selectedObj ? (
-            <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between gap-2 rounded-xl border border-cyan-400/25 bg-[#061019]/88 px-3 py-2 backdrop-blur">
+            <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between gap-2 rounded-xl border border-cyan-700/25 bg-white/92 px-3 py-2 backdrop-blur">
               <div className="flex min-w-0 items-center gap-2">
-                <Crosshair size={13} className="shrink-0 text-cyan-400" />
-                <span className="truncate text-[11.5px] text-slate-200">{labelOf(selectedObj)}</span>
+                <Crosshair size={13} className="shrink-0 text-cyan-700" />
+                <span className="truncate text-[11.5px] text-stone-800">{labelOf(selectedObj)}</span>
               </div>
               <button
                 onClick={() => select(null)}
-                className="shrink-0 text-[10px] text-slate-500 transition hover:text-cyan-300"
+                className="shrink-0 text-[10px] text-stone-600 transition hover:text-cyan-800"
               >
                 取消
               </button>
             </div>
           ) : (
-            <div className="pointer-events-none absolute bottom-3 left-3 text-[10px] text-slate-600">
+            <div className="pointer-events-none absolute bottom-3 left-3 text-[10px] text-stone-500">
               <span className="inline-flex items-center gap-1">
                 {labelsVisible ? <Eye size={10} /> : <EyeOff size={10} />}
                 点击画面中的对象可高亮查看

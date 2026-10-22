@@ -47,7 +47,8 @@ export const leverScene: SceneSpec = {
     showAxis: false,
     // 0.58：既要看到台面边缘（"微型展台"的边界感），也不能让台面铺满整个视野——
     // 铺满时画面就是一大片同色平面，比原来的黑底更没信息量。
-    stage: { kind: 'table', y: 0, size: 0.5, contact: 0.34 },
+    // surface 单独压暗：这个场景的台面铺满全屏，用默认木色会有近三成像素接近纯白
+    stage: { kind: 'table', y: 0, size: 0.5, contact: 0.34, surface: '#9C8A66' },
   },
 
   params: [

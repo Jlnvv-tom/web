@@ -81,7 +81,7 @@ export function ExportButton({ spec }: { spec: SceneSpec }) {
         {busy ? (
           <Loader2 size={12} className="animate-spin" />
         ) : state.kind === 'done' ? (
-          <Check size={12} className="text-emerald-400" />
+          <Check size={12} className="text-emerald-700" />
         ) : (
           <Download size={12} />
         )}
@@ -90,7 +90,7 @@ export function ExportButton({ spec }: { spec: SceneSpec }) {
 
       {state.kind === 'error' ? (
         <span
-          className="inline-flex items-center gap-1 text-[10px] text-amber-300/90"
+          className="inline-flex items-center gap-1 text-[10px] text-amber-700/90"
           title={state.msg}
         >
           <AlertTriangle size={10} />

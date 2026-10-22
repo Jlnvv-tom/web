@@ -24,7 +24,7 @@ export default async function EmbedPage({ params }: { params: Promise<{ id: stri
   if (!spec) notFound();
 
   return (
-    <main className="min-h-screen bg-[#04070d] p-2">
+    <main className="min-h-screen bg-[#f6f3ee] p-2">
       <PlayerProvider spec={spec}>
         <ScenePlayer />
       </PlayerProvider>

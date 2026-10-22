@@ -78,21 +78,21 @@ export function TelemetryPanel({ sceneId }: { sceneId?: string }) {
         className="flex w-full items-center gap-2 px-4 py-3 text-left transition hover:bg-white/[0.03]"
         aria-expanded={open}
       >
-        <Activity size={13} className="text-cyan-400" />
-        <span className="text-[11px] font-bold tracking-[0.18em] text-slate-300">使用数据</span>
-        <span className="rounded-full bg-white/6 px-2 py-0.5 text-[9.5px] text-slate-500">仅存本地</span>
+        <Activity size={13} className="text-cyan-700" />
+        <span className="text-[11px] font-bold tracking-[0.18em] text-stone-700">使用数据</span>
+        <span className="rounded-full bg-stone-900/6 px-2 py-0.5 text-[9.5px] text-stone-600">仅存本地</span>
         {s.total > 0 ? (
-          <span className="ml-1 font-mono text-[10px] tabular-nums text-slate-600">{s.total} 条事件</span>
+          <span className="ml-1 font-mono text-[10px] tabular-nums text-stone-500">{s.total} 条事件</span>
         ) : null}
-        <span className="ml-auto text-[10px] text-slate-600">{open ? '收起' : '展开'}</span>
+        <span className="ml-auto text-[10px] text-stone-500">{open ? '收起' : '展开'}</span>
         <ChevronDown
           size={13}
-          className={`text-slate-500 transition-transform ${open ? 'rotate-180' : ''}`}
+          className={`text-stone-600 transition-transform ${open ? 'rotate-180' : ''}`}
         />
       </button>
 
       {open ? (
-        <div className="border-t border-white/6 px-4 pb-4 pt-3">
+        <div className="border-t border-stone-900/10 px-4 pb-4 pt-3">
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             <Tile label="开口次数" value={num(views)} hint="scene_view" />
             <Tile
@@ -114,15 +114,15 @@ export function TelemetryPanel({ sceneId }: { sceneId?: string }) {
           </div>
 
           {sceneId && s.viewsByScene[sceneId] ? (
-            <p className="mt-2.5 text-[10px] text-slate-600">
+            <p className="mt-2.5 text-[10px] text-stone-500">
               本场景已打开 {s.viewsByScene[sceneId]} 次。
             </p>
           ) : null}
 
-          <p className="mt-3 rounded-lg bg-white/[0.03] px-2.5 py-2 text-[10px] leading-relaxed text-slate-500">
-            记录 <code className="text-slate-400">scene_view</code> /{' '}
-            <code className="text-slate-400">param_change</code> /{' '}
-            <code className="text-slate-400">quiz_answer</code>{' '}
+          <p className="mt-3 rounded-lg bg-white/[0.03] px-2.5 py-2 text-[10px] leading-relaxed text-stone-600">
+            记录 <code className="text-stone-600">scene_view</code> /{' '}
+            <code className="text-stone-600">param_change</code> /{' '}
+            <code className="text-stone-600">quiz_answer</code>{' '}
             三类事件，只写在你自己浏览器的 localStorage 里，不上传、不含个人信息。
             导出 CSV 后可自行统计。
           </p>
@@ -136,7 +136,7 @@ export function TelemetryPanel({ sceneId }: { sceneId?: string }) {
             </button>
             <button
               onClick={onClear}
-              className="btn !px-2.5 !py-1 !text-[11px] text-red-300/80 hover:text-red-200"
+              className="btn !px-2.5 !py-1 !text-[11px] text-red-800/80 hover:text-red-800"
               title="清空本地记录"
             >
               <Trash2 size={12} /> 清空
@@ -164,12 +164,12 @@ function Tile({
   tone?: 'ok' | 'warn' | 'muted';
 }) {
   const valueCls =
-    tone === 'ok' ? 'text-emerald-300' : tone === 'warn' ? 'text-amber-300' : 'text-slate-100';
+    tone === 'ok' ? 'text-emerald-700' : tone === 'warn' ? 'text-amber-700' : 'text-stone-900';
   return (
-    <div className="rounded-xl border border-white/6 bg-white/[0.025] px-2.5 py-2">
-      <div className="text-[9.5px] tracking-wide text-slate-500">{label}</div>
+    <div className="rounded-xl border border-stone-900/10 bg-white/[0.025] px-2.5 py-2">
+      <div className="text-[9.5px] tracking-wide text-stone-600">{label}</div>
       <div className={`mt-0.5 font-mono text-[16px] font-semibold tabular-nums ${valueCls}`}>{value}</div>
-      {hint ? <div className="mt-0.5 text-[9px] leading-snug text-slate-600">{hint}</div> : null}
+      {hint ? <div className="mt-0.5 text-[9px] leading-snug text-stone-500">{hint}</div> : null}
     </div>
   );
 }

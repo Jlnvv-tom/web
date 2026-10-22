@@ -51,9 +51,9 @@ export function QuizCard({
   return (
     <section className="panel p-4">
       <header className="mb-3 flex items-center gap-2">
-        <Target size={13} className="text-cyan-400" />
-        <h2 className="text-[11px] font-bold tracking-[0.18em] text-slate-300">预测与验证</h2>
-        <span className="ml-1 rounded-full bg-cyan-400/12 px-2 py-0.5 text-[9.5px] font-semibold text-cyan-300/90">
+        <Target size={13} className="text-cyan-700" />
+        <h2 className="text-[11px] font-bold tracking-[0.18em] text-stone-700">预测与验证</h2>
+        <span className="ml-1 rounded-full bg-cyan-600/10 px-2 py-0.5 text-[9.5px] font-semibold text-cyan-800/90">
           先猜，再看
         </span>
       </header>
@@ -65,9 +65,9 @@ export function QuizCard({
           const correct = picked === q.answer;
 
           return (
-            <article key={qi} className="rounded-xl border border-white/6 bg-white/[0.025] p-3.5">
-              <p className="mb-2.5 text-[12.5px] leading-relaxed text-slate-200">
-                <span className="mr-1.5 font-mono text-[11px] text-cyan-400/80">Q{qi + 1}</span>
+            <article key={qi} className="rounded-xl border border-stone-900/10 bg-white/[0.025] p-3.5">
+              <p className="mb-2.5 text-[12.5px] leading-relaxed text-stone-800">
+                <span className="mr-1.5 font-mono text-[11px] text-cyan-700/80">Q{qi + 1}</span>
                 {q.prompt}
               </p>
 
@@ -75,11 +75,11 @@ export function QuizCard({
                 {q.options.map((opt, oi) => {
                   const isPicked = picked === oi;
                   const isAnswer = q.answer === oi;
-                  let cls = 'border-white/10 text-slate-300 hover:border-white/25 hover:bg-white/5';
+                  let cls = 'border-stone-900/14 text-stone-700 hover:border-stone-900/20 hover:bg-stone-900/5';
                   if (show) {
-                    if (isAnswer) cls = 'border-emerald-400/50 bg-emerald-400/12 text-emerald-200';
-                    else if (isPicked) cls = 'border-red-400/40 bg-red-400/10 text-red-200';
-                    else cls = 'border-white/6 text-slate-500';
+                    if (isAnswer) cls = 'border-emerald-700/45 bg-emerald-600/12 text-emerald-800';
+                    else if (isPicked) cls = 'border-red-700/40 bg-red-600/12 text-red-800';
+                    else cls = 'border-stone-900/10 text-stone-600';
                   }
                   return (
                     <button
@@ -99,7 +99,7 @@ export function QuizCard({
                 <div className="mt-2.5">
                   <p
                     className={`rounded-lg px-2.5 py-2 text-[11px] leading-relaxed ${
-                      correct ? 'bg-emerald-400/8 text-emerald-200/85' : 'bg-amber-400/8 text-amber-200/85'
+                      correct ? 'bg-emerald-600/10 text-emerald-800/85' : 'bg-amber-500/10 text-amber-800/85'
                     }`}
                   >
                     <b className="font-semibold">{correct ? '判断正确 · ' : '再看一眼 · '}</b>

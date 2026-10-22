@@ -36,12 +36,11 @@ export function StageBackdrop({ color }: { color: string }) {
     c.height = 256;
     const ctx = c.getContext('2d')!;
     const base = new THREE.Color(color);
-    // 顶部压暗 30%、底部提亮 35% —— 模拟"上方灯光、下方台面反光"。
-    // 梯度不能太陡：压到 0.55 时上半屏 L≈0.05，会被统计成"暗部"，
-    // 于是画面明明有台面了，"暗部占比"还是 50%+（那不是 3D 的问题，是背景的问题）。
-    const top = base.clone().multiplyScalar(0.72);
+    // 浅色模式：上亮下暗（顶灯在上、地面收光），和深色模式正好相反。
+    // 之前深色模式是"上暗下亮"，直接沿用到浅色会变成"头顶一块乌云"。
+    const top = base.clone().multiplyScalar(1.14);
     const mid = base.clone();
-    const bottom = base.clone().multiplyScalar(1.35);
+    const bottom = base.clone().multiplyScalar(0.86);
     const g = ctx.createLinearGradient(0, 0, 0, 256);
     g.addColorStop(0, `#${top.getHexString()}`);
     g.addColorStop(0.58, `#${mid.getHexString()}`);
@@ -184,15 +183,15 @@ export function StageLights({ half, y }: { half: number; y: number }) {
   return (
     <>
       {/* 大面积暖环境光：亮度的主要来源，几乎不产生方向感。
-          强度经过两轮实测：1.25 会把浅色台面推到 60% 以上像素「接近纯白」，
-          亮部信息全丢（见 docs/m3-plan.md §7 的 bright_ratio 指标）。 */}
-      <hemisphereLight args={['#FFF3E0', '#3A2E24', 0.55]} />
+          浅色模式下环境光占比要比深色模式高（深色模式靠主光压出明暗），
+          否则暗部会脏。强度经过两轮实测：再高会把浅色台面推到一片死白。 */}
+      <hemisphereLight args={['#FFF8EC', '#B8AC97', 0.55]} />
 
       {/* 主光：唯一投影光源，从头侧 45° 打下来 */}
       <directionalLight
         ref={key}
         position={[-half * 0.85, y + half * 1.55, half * 1.05]}
-        intensity={1.95}
+        intensity={2.5}
         color="#FFF6EA"
         castShadow
         shadow-mapSize-width={1024}
@@ -225,18 +224,19 @@ export function StageLights({ half, y }: { half: number; y: number }) {
    配色默认值（与 docs/m3-plan.md §4.1 保持一致）
    ============================================================ */
 export const STAGE_DEFAULTS = {
-  // 台面不要用"浅到发白"的木色：ACES 曝光下 #E4D6BF 会被推到 L≈0.85，
-  // 整个画面上半部变成一片没有信息的白。压到 #C9B79B 才是"木头"而不是"纸"。
-  surface: '#BFAC8E',
+  // 浅色模式（2026-10-22）：台面比深色模式下提亮一档。
+  // 深色模式下压暗是为了不抢暗背景；浅色背景下再压暗会变成"一块脏木板"。
+  surface: '#A8916E',
   /**
    * 背景色**不是最终显示值**，而是色调映射之前的输入值。
    *
-   * 实测踩坑：写 `#2C231A`（sRGB L≈0.14）时，ACES + exposure 0.86 会把它压到
-   * 屏幕上的 L≈0.043——比"暗部"阈值 0.08 还低，于是整个上半屏都被统计成暗部，
-   * 无论怎么加台面、怎么调雾都降不下来。补偿到 `#7A6650` 后屏幕上落在 0.14 附近。
+   * 踩过的坑（深色模式时期）：写 `#2C231A`（sRGB L≈0.14）时，ACES + exposure 0.86
+   * 会把它压到屏幕上的 L≈0.043，比"暗部"阈值 0.08 还低，整个上半屏都被统计成暗部。
+   * 所以**选值要看屏幕上的结果，不能看十六进制本身**。
    *
-   * 雾必须用同一个值：雾色与背景色走同一条 tone mapping，
-   * 这样远处物体"淡出"后刚好融进背景，不会出现一圈比背景更亮的雾。
+   * 浅色模式下反过来：输入值要选得比目标更亮，因为 ACES 会压。
+   * 雾必须用同一个值 —— 雾色与背景色走同一条 tone mapping，
+   * 远处物体"淡出"后才能刚好融进背景，不会出现一圈比背景更亮的雾。
    */
-  backdrop: '#5A4B3A',
+  backdrop: '#948B79',
 } as const;

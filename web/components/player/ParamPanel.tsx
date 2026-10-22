@@ -28,10 +28,10 @@ export function ParamPanel({
   return (
     <section className="panel p-3">
       <header className="mb-3 flex items-center justify-between">
-        <h3 className="text-[11px] font-bold tracking-[0.18em] text-slate-300">参数</h3>
+        <h3 className="text-[11px] font-bold tracking-[0.18em] text-stone-700">参数</h3>
         <button
           onClick={reset}
-          className="text-[10px] text-slate-500 transition hover:text-cyan-300"
+          className="text-[10px] text-stone-600 transition hover:text-cyan-800"
           title="恢复默认参数"
         >
           重置
@@ -46,12 +46,12 @@ export function ParamPanel({
             return (
               <div key={p.key}>
                 <div className="mb-1.5 flex items-baseline justify-between gap-2">
-                  <label htmlFor={`p-${p.key}`} className="text-[11.5px] text-slate-300">
+                  <label htmlFor={`p-${p.key}`} className="text-[11.5px] text-stone-700">
                     {p.label}
                   </label>
-                  <span className="font-mono text-[11.5px] font-semibold tabular-nums text-cyan-300">
+                  <span className="font-mono text-[11.5px] font-semibold tabular-nums text-cyan-800">
                     {formatNum(display)}
-                    {p.unit ? <span className="ml-0.5 text-[10px] text-slate-500">{p.unit}</span> : null}
+                    {p.unit ? <span className="ml-0.5 text-[10px] text-stone-600">{p.unit}</span> : null}
                   </span>
                 </div>
                 <input
@@ -64,7 +64,7 @@ export function ParamPanel({
                   onChange={(e) => change(p.key, v, Number(e.target.value))}
                   className="range-input w-full"
                 />
-                {p.hint ? <p className="mt-1 text-[10px] leading-relaxed text-slate-600">{p.hint}</p> : null}
+                {p.hint ? <p className="mt-1 text-[10px] leading-relaxed text-stone-500">{p.hint}</p> : null}
               </div>
             );
           }
@@ -73,14 +73,14 @@ export function ParamPanel({
             const v = typeof params[p.key] === 'boolean' ? (params[p.key] as boolean) : p.default;
             return (
               <label key={p.key} className="flex cursor-pointer items-center justify-between gap-2">
-                <span className="text-[11.5px] text-slate-300">{p.label}</span>
+                <span className="text-[11.5px] text-stone-700">{p.label}</span>
                 <button
                   type="button"
                   role="switch"
                   aria-checked={v}
                   onClick={() => change(p.key, v, !v)}
                   className={`relative h-[18px] w-[34px] rounded-full transition ${
-                    v ? 'bg-cyan-400/80' : 'bg-white/12'
+                    v ? 'bg-cyan-600/80' : 'bg-stone-900/8'
                   }`}
                 >
                   <span
@@ -96,7 +96,7 @@ export function ParamPanel({
           const v = typeof params[p.key] === 'string' ? (params[p.key] as string) : p.default;
           return (
             <div key={p.key}>
-              <div className="mb-1.5 text-[11.5px] text-slate-300">{p.label}</div>
+              <div className="mb-1.5 text-[11.5px] text-stone-700">{p.label}</div>
               <div className="flex flex-wrap gap-1.5">
                 {p.options.map((o) => (
                   <button
@@ -104,8 +104,8 @@ export function ParamPanel({
                     onClick={() => change(p.key, v, o.value)}
                     className={`rounded-full border px-2.5 py-1 text-[10.5px] transition ${
                       v === o.value
-                        ? 'border-cyan-400/60 bg-cyan-400/15 text-cyan-200'
-                        : 'border-white/10 text-slate-400 hover:border-white/25'
+                        ? 'border-cyan-700/55 bg-cyan-600/12 text-cyan-800'
+                        : 'border-stone-900/14 text-stone-600 hover:border-stone-900/20'
                     }`}
                   >
                     {o.label}

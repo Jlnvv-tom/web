@@ -39,7 +39,7 @@ export default function SearchPage() {
     <>
       <SiteHeader />
       <main className="mx-auto max-w-[900px] px-4 py-6 sm:px-6">
-        <h1 className="mb-4 text-[20px] font-bold text-white">搜索</h1>
+        <h1 className="mb-4 text-[20px] font-bold text-stone-900">搜索</h1>
         <SearchClient items={[...sceneItems, ...pointItems]} />
       </main>
       <SiteFooter />

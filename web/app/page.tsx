@@ -21,12 +21,12 @@ export default function HomePage() {
             <span className="chip mx-auto mb-5">
               <Sparkles size={11} /> v0.1 · MVP 已上线 {STATS.ready} 个真 3D 场景
             </span>
-            <h1 className="text-balance text-[30px] font-black leading-[1.15] tracking-tight text-white sm:text-[44px]">
+            <h1 className="text-balance text-[30px] font-black leading-[1.15] tracking-tight text-stone-900 sm:text-[44px]">
               把抽象的物理规律
               <br className="sm:hidden" />
-              变成<span className="bg-gradient-to-r from-cyan-300 to-sky-400 bg-clip-text text-transparent">能转、能调、能讲透</span>的画面
+              变成<span className="bg-gradient-to-r from-cyan-700 to-sky-700 bg-clip-text text-transparent">能转、能调、能讲透</span>的画面
             </h1>
-            <p className="mx-auto mt-5 max-w-xl text-pretty text-[13px] leading-[1.9] text-slate-400 sm:text-[14px]">
+            <p className="mx-auto mt-5 max-w-xl text-pretty text-[13px] leading-[1.9] text-stone-600 sm:text-[14px]">
               不做"实验操作模拟"，只做一件事：把学生脑子里那团想不清楚的三维图景，
               摆到屏幕上让他自己转着看。每个知识点 = 一个真 3D 场景 + 分步讲解 + 易错点 + 预测验证。
             </p>
@@ -41,15 +41,15 @@ export default function HomePage() {
               </Link>
             </div>
 
-            <ul className="mx-auto mt-9 flex max-w-lg flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[11px] text-slate-500">
+            <ul className="mx-auto mt-9 flex max-w-lg flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[11px] text-stone-600">
               <li className="flex items-center gap-1.5">
-                <Move3d size={12} className="text-cyan-400/80" /> 真 3D 自由视角
+                <Move3d size={12} className="text-cyan-700/80" /> 真 3D 自由视角
               </li>
               <li className="flex items-center gap-1.5">
-                <SlidersHorizontal size={12} className="text-cyan-400/80" /> 参数实时可调
+                <SlidersHorizontal size={12} className="text-cyan-700/80" /> 参数实时可调
               </li>
               <li className="flex items-center gap-1.5">
-                <MousePointerClick size={12} className="text-cyan-400/80" /> 点击对象可高亮
+                <MousePointerClick size={12} className="text-cyan-700/80" /> 点击对象可高亮
               </li>
             </ul>
           </div>
@@ -59,12 +59,12 @@ export default function HomePage() {
         <section className="mt-4">
           <div className="mb-3 flex items-end justify-between">
             <div>
-              <h2 className="text-[15px] font-bold text-slate-100">首批场景</h2>
-              <p className="mt-1 text-[11.5px] text-slate-500">
+              <h2 className="text-[15px] font-bold text-stone-900">首批场景</h2>
+              <p className="mt-1 text-[11.5px] text-stone-600">
                 每个场景都通过求解器的守恒量自检，并由物理教师审校
               </p>
             </div>
-            <Link href="/search" className="hidden text-[11.5px] text-cyan-400/90 hover:text-cyan-300 sm:block">
+            <Link href="/search" className="hidden text-[11.5px] text-cyan-700/90 hover:text-cyan-800 sm:block">
               查看全部 →
             </Link>
           </div>
@@ -79,8 +79,8 @@ export default function HomePage() {
         {/* ============ 章节体系 ============ */}
         <section className="mt-14">
           <div className="mb-4">
-            <h2 className="text-[15px] font-bold text-slate-100">按教材章节走</h2>
-            <p className="mt-1 text-[11.5px] text-slate-500">
+            <h2 className="text-[15px] font-bold text-stone-900">按教材章节走</h2>
+            <p className="mt-1 text-[11.5px] text-stone-600">
               人教版 {STATS.books} 册 · {STATS.chapters} 章 · {STATS.points} 个知识点
               （{STATS.juniorPoints} 个初中 / {STATS.seniorPoints} 个高中）
             </p>
@@ -88,14 +88,14 @@ export default function HomePage() {
 
           <div className="grid gap-4 lg:grid-cols-2">
             {[
-              { title: '初中', books: juniorBooks, accent: 'from-emerald-400/20' },
-              { title: '高中', books: seniorBooks, accent: 'from-cyan-400/20' },
+              { title: '初中', books: juniorBooks, accent: 'from-emerald-600/15' },
+              { title: '高中', books: seniorBooks, accent: 'from-cyan-600/15' },
             ].map((group) => (
               <div key={group.title} className="panel overflow-hidden">
-                <div className={`border-b border-white/6 bg-gradient-to-r ${group.accent} to-transparent px-4 py-2.5`}>
-                  <h3 className="text-[12px] font-bold tracking-[0.16em] text-slate-200">{group.title}</h3>
+                <div className={`border-b border-stone-900/10 bg-gradient-to-r ${group.accent} to-transparent px-4 py-2.5`}>
+                  <h3 className="text-[12px] font-bold tracking-[0.16em] text-stone-800">{group.title}</h3>
                 </div>
-                <div className="divide-y divide-white/5">
+                <div className="divide-y divide-stone-900/10">
                   {group.books.map((b) => {
                     const ready = b.chapters.reduce(
                       (n, c) => n + c.points.filter((p) => p.sceneId).length,
@@ -107,16 +107,16 @@ export default function HomePage() {
                         href={`/chapters/${b.id}`}
                         className="flex items-center gap-3 px-4 py-2.5 transition hover:bg-white/[0.035]"
                       >
-                        <span className="w-[86px] shrink-0 text-[11.5px] font-medium text-slate-300">{b.title}</span>
-                        <span className="flex-1 truncate text-[10.5px] text-slate-600">{b.subtitle}</span>
+                        <span className="w-[86px] shrink-0 text-[11.5px] font-medium text-stone-700">{b.title}</span>
+                        <span className="flex-1 truncate text-[10.5px] text-stone-500">{b.subtitle}</span>
                         {ready > 0 ? (
-                          <span className="shrink-0 rounded-full bg-cyan-400/12 px-2 py-[2px] text-[9.5px] font-semibold text-cyan-300">
+                          <span className="shrink-0 rounded-full bg-cyan-600/10 px-2 py-[2px] text-[9.5px] font-semibold text-cyan-800">
                             {ready} 个场景
                           </span>
                         ) : (
-                          <span className="shrink-0 text-[9.5px] text-slate-700">规划中</span>
+                          <span className="shrink-0 text-[9.5px] text-stone-500">规划中</span>
                         )}
-                        <ArrowRight size={12} className="shrink-0 text-slate-700" />
+                        <ArrowRight size={12} className="shrink-0 text-stone-500" />
                       </Link>
                     );
                   })}
@@ -143,8 +143,8 @@ export default function HomePage() {
             },
           ].map((x) => (
             <div key={x.t} className="panel p-4">
-              <h3 className="text-[12.5px] font-semibold text-slate-100">{x.t}</h3>
-              <p className="mt-2 text-[11px] leading-[1.85] text-slate-500">{x.d}</p>
+              <h3 className="text-[12.5px] font-semibold text-stone-900">{x.t}</h3>
+              <p className="mt-2 text-[11px] leading-[1.85] text-stone-600">{x.d}</p>
             </div>
           ))}
         </section>

@@ -15,15 +15,15 @@ export function FormulaCard({ formulas, mathml = false }: { formulas: FormulaDef
   return (
     <section className="panel p-4">
       <header className="mb-3 flex items-center gap-2">
-        <h2 className="text-[11px] font-bold tracking-[0.18em] text-slate-300">核心公式</h2>
-        <span className="h-px flex-1 bg-gradient-to-r from-cyan-400/30 to-transparent" />
+        <h2 className="text-[11px] font-bold tracking-[0.18em] text-stone-700">核心公式</h2>
+        <span className="h-px flex-1 bg-gradient-to-r from-cyan-600/20 to-transparent" />
       </header>
 
       <div className="space-y-3">
         {formulas.map((f, i) => (
-          <div key={i} className="rounded-xl border border-white/6 bg-white/[0.025] px-3 py-2.5">
+          <div key={i} className="rounded-xl border border-stone-900/10 bg-white/[0.025] px-3 py-2.5">
             <div
-              className="formula text-[15px] text-slate-100"
+              className="formula text-[15px] text-stone-900"
               dangerouslySetInnerHTML={{
                 __html: katex.renderToString(f.tex, {
                   displayMode: true,
@@ -34,7 +34,7 @@ export function FormulaCard({ formulas, mathml = false }: { formulas: FormulaDef
               }}
             />
             {f.caption ? (
-              <p className="mt-1.5 text-[11px] leading-relaxed text-slate-500">{f.caption}</p>
+              <p className="mt-1.5 text-[11px] leading-relaxed text-stone-600">{f.caption}</p>
             ) : null}
           </div>
         ))}
