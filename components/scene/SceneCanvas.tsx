@@ -12,6 +12,12 @@ import { SceneRuntime } from './SceneRuntime';
 import { LabelProjector, deriveLabels } from './labels';
 import { STAGE_DEFAULTS, StageBackdrop, StageLights, TableTop } from './Stage';
 
+/** 非展台场景的画布底板：比页面（#f6f3ee）深一档，比展台背景再深一档 */
+/** 非展台场景的画布底板。
+ *  比页面（#f6f3ee，L≈0.93）深三档：浅色页面配一块中间调"绘图板"，
+ *  3D 内容才有地方落下阴影和高光。全白的画布上任何物体都是飘着的。 */
+const CANVAS_BACKDROP = '#8E8574';
+
 /* ============================================================
    程序化环境反射（替代 HDRI 文件，保证零外部资源）
    ============================================================ */
@@ -24,25 +30,28 @@ function ProceduralEnv({ intensity = 1 }: { intensity?: number }) {
     c.width = 1024;
     c.height = 512;
     const ctx = c.getContext('2d')!;
+    // 浅色模式（2026-10-22）：原来的冷蓝夜空会反射成"金属发蓝"，
+    // 在白底页面上很脏。换成暖白室内光 —— 上亮下暗，像一盏顶灯照着的桌面。
     const g = ctx.createLinearGradient(0, 0, 0, 512);
-    g.addColorStop(0.0, '#0a1828');
-    g.addColorStop(0.44, '#14384d');
-    g.addColorStop(0.5, '#1b6577');
-    g.addColorStop(0.58, '#0b1e2e');
-    g.addColorStop(1.0, '#02060c');
+    g.addColorStop(0.0, '#fffaf2');
+    g.addColorStop(0.42, '#f3ece0');
+    g.addColorStop(0.52, '#e7ddcc');
+    g.addColorStop(0.62, '#d9cdb9');
+    g.addColorStop(1.0, '#c9bda8');
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, 1024, 512);
 
+    // 柔和的光斑：给金属/玻璃一点可反射的东西，否则清一色哑光
     const blobs: [number, number, number, string][] = [
-      [180, 150, 210, 'rgba(120,235,255,0.85)'],
-      [640, 110, 250, 'rgba(255,196,130,0.55)'],
-      [880, 330, 190, 'rgba(120,170,255,0.4)'],
-      [400, 400, 160, 'rgba(255,130,90,0.25)'],
+      [180, 120, 240, 'rgba(255,252,244,0.95)'],
+      [640, 90, 260, 'rgba(255,240,214,0.75)'],
+      [880, 300, 200, 'rgba(226,240,246,0.5)'],
+      [400, 380, 170, 'rgba(214,196,168,0.45)'],
     ];
     for (const [x, y, r, col] of blobs) {
       const rg = ctx.createRadialGradient(x, y, 0, x, y, r);
       rg.addColorStop(0, col);
-      rg.addColorStop(1, 'rgba(0,0,0,0)');
+      rg.addColorStop(1, 'rgba(255,255,255,0)');
       ctx.fillStyle = rg;
       ctx.beginPath();
       ctx.arc(x, y, r, 0, Math.PI * 2);
@@ -71,16 +80,20 @@ function ProceduralEnv({ intensity = 1 }: { intensity?: number }) {
 
 /* ============================================================
    灯光
+
+   浅色模式（2026-10-22）：原来是"深空 + 霓虹点光"，
+   白底下霓虹点光会把物体染成一块块彩色。
+   改成"室内顶光 + 微弱冷暖补光"，方向光承担造型，点光只做点缀。
    ============================================================ */
 function Lights() {
   return (
     <>
-      <hemisphereLight args={['#2c4f68', '#080c12', 1.0]} />
-      <directionalLight position={[9, 15, 12]} intensity={2.1} color="#ffffff" />
-      <directionalLight position={[-10, 7, -13]} intensity={1.2} color="#7dd3fc" />
-      <directionalLight position={[6, -6, 8]} intensity={0.5} color="#ffb27a" />
-      <pointLight position={[-8, 3, 5]} intensity={26} distance={30} decay={2} color="#22d3ee" />
-      <pointLight position={[8, -3, -5]} intensity={16} distance={28} decay={2} color="#ff8a3d" />
+      <hemisphereLight args={['#fffaf0', '#b8ac97', 0.55]} />
+      <directionalLight position={[9, 15, 12]} intensity={2.9} color="#ffffff" />
+      <directionalLight position={[-10, 7, -13]} intensity={0.9} color="#dbeafe" />
+      <directionalLight position={[6, -6, 8]} intensity={0.45} color="#ffe4c4" />
+      <pointLight position={[-8, 3, 5]} intensity={9} distance={30} decay={2} color="#a5f3fc" />
+      <pointLight position={[8, -3, -5]} intensity={6} distance={28} decay={2} color="#fed7aa" />
     </>
   );
 }
@@ -139,10 +152,12 @@ function getDustTexture() {
   const c = document.createElement('canvas');
   c.width = c.height = 64;
   const ctx = c.getContext('2d')!;
+  // 中性白：颜色完全由 SceneDust 的 color 决定。
+  // 原来这里烤了一层青色，深色模式下看不出来，浅色模式下会变成灰绿色的脏点。
   const g = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
-  g.addColorStop(0, 'rgba(190,240,255,0.9)');
-  g.addColorStop(0.4, 'rgba(120,200,240,0.25)');
-  g.addColorStop(1, 'rgba(0,0,0,0)');
+  g.addColorStop(0, 'rgba(255,255,255,0.95)');
+  g.addColorStop(0.4, 'rgba(255,255,255,0.4)');
+  g.addColorStop(1, 'rgba(255,255,255,0)');
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, 64, 64);
   dustTex = new THREE.CanvasTexture(c);
@@ -165,11 +180,14 @@ function SceneDust({
   size = 0.42,
   color = '#8fd8f0',
   opacity = 0.34,
+  additive = true,
 }: {
   spread?: number;
   size?: number;
   color?: string;
   opacity?: number;
+  /** 深色底用叠加（亮点），浅色底用普通混合（暗点） */
+  additive?: boolean;
 }) {
   const points = useRef<THREE.Points>(null);
 
@@ -212,7 +230,7 @@ function SceneDust({
         transparent
         opacity={opacity}
         depthWrite={false}
-        blending={THREE.AdditiveBlending}
+        blending={additive ? THREE.AdditiveBlending : THREE.NormalBlending}
         sizeAttenuation
       />
     </points>
@@ -506,22 +524,27 @@ export function SceneCanvas({
         }}
         onCreated={({ gl }) => {
           gl.toneMapping = THREE.ACESFilmicToneMapping;
-          // 台面变亮后要压回曝光，否则高光整片糊掉
-          gl.toneMappingExposure = staged ? 0.86 : 1.15;
+          // 浅色模式下整体曝光要压一点：白底已经很亮，
+          // 再按深色模式的 1.15 曝光，台面与物体会一起糊成一片白。
+          gl.toneMappingExposure = staged ? 0.7 : 0.78;
           gl.outputColorSpace = THREE.SRGBColorSpace;
         }}
       >
-        {staged ? <StageBackdrop color={stageBackdrop} /> : null}
+        {/* 浅色模式下**所有**场景都要有画布底板。
+            原来是透明画布 + 页面深色背景充当"虚空"来框住内容；
+            页面变浅后透明画布会让 3D 内容直接漂在白纸上，细线几乎看不见。
+            给一块比页面略深、比台面略浅的底板，层次才立得住。 */}
+        <StageBackdrop color={staged ? stageBackdrop : CANVAS_BACKDROP} />
         {/* 展台场景压暗环境反射：暖光环境里不该有青蓝色反光 */}
         <ProceduralEnv intensity={staged ? 0.55 : 1} />
         {staged ? <StageLights half={stageHalf} y={stageY} /> : <Lights />}
-        {/* 雾：让远处元素自然退到暗部，画面有纵深（范围随场景尺度缩放） */}
+        {/* 雾：让远处元素自然退到背景色，画面有纵深（范围随场景尺度缩放） */}
         <fog
           attach="fog"
           args={
             staged
               ? [stageBackdrop, camDist * 2.2, camDist * 9]
-              : ['#04070d', camDist * 0.55, camDist * 3.6]
+              : ['#efe9e0', camDist * 0.55, camDist * 3.6]
           }
         />
         {staged ? <TableTop
@@ -531,17 +554,22 @@ export function SceneCanvas({
           material={stage?.material ?? 'wood'}
           contact={stage?.contact}
         /> : null}
+        {/* 尘埃：浅色下改用普通混合的暗色微粒。
+            原来是叠加混合的亮点，在白底上等于不存在；换成暗点才像"光里的灰尘" */}
         <SceneDust
           spread={Math.min(90, Math.max(6, camDist * 1.6))}
           size={Math.min(2.2, Math.max(0.012, camDist * 0.035))}
-          color={staged ? '#FFE7C4' : '#8fd8f0'}
-          opacity={staged ? 0.16 : 0.34}
+          color={staged ? '#8a7a63' : '#9a8f80'}
+          opacity={staged ? 0.2 : 0.22}
+          additive={false}
         />
         {bloom ? (
           <PostFX
-            strength={staged ? 0.16 : 0.62}
-            threshold={staged ? 0.86 : 0.6}
-            radius={staged ? 0.35 : 0.55}
+            // 泛光阈值大幅提高：白底下低阈值 bloom 会把整块台面镀成一片白雾。
+            // 现在只让真正的高光（金属反光、发光体）溢出。
+            strength={staged ? 0.1 : 0.22}
+            threshold={staged ? 0.94 : 0.88}
+            radius={staged ? 0.3 : 0.4}
           />
         ) : null}
         <SceneRuntime spec={spec} store={store} stateRef={stateRef} />
@@ -564,17 +592,13 @@ export function SceneCanvas({
       {/* 3D 标签的 DOM 覆盖层（不参与 React 渲染，由 LabelProjector 逐帧定位） */}
       <div ref={setLabelHost} className="pointer-events-none absolute inset-0 overflow-hidden" />
 
-      {/* 暗角：压住四角，把注意力收到画面中心。
-          展台场景改用暖色半透明：冷黑暗角压在暖台面上会像"镜头上蒙了脏东西" */}
+      {/* 暗角：浅色模式下几乎去掉 —— 深色暗角压在浅色画布上像一层脏灰。
+          只留极轻的一层把视线收到中心（深色科技风才需要重暗角收边） */}
       <div
         className="pointer-events-none absolute inset-0"
         style={{
-          // 展台场景几乎不要暗角：实测顶部被 0.62 的黑压到 L=0.046，
-          // 而背景本身是 0.094——"暗部占比"一直降不下来，元凶是这层 CSS 而不是 3D。
-          // 深色科技风需要暗角收边，暖色展台不需要（参考站也没有）。
-          background: staged
-            ? 'radial-gradient(ellipse at 50% 44%, rgba(0,0,0,0) 62%, rgba(20,15,10,0.10) 84%, rgba(14,10,7,0.26) 100%)'
-            : 'radial-gradient(ellipse at 50% 46%, rgba(0,0,0,0) 42%, rgba(2,5,10,0.55) 78%, rgba(1,3,7,0.9) 100%)',
+          background:
+            'radial-gradient(ellipse at 50% 44%, rgba(0,0,0,0) 70%, rgba(28,25,23,0.07) 92%, rgba(28,25,23,0.14) 100%)',
         }}
       />
     </div>

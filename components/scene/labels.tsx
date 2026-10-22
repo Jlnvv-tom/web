@@ -42,7 +42,7 @@ export function deriveLabels(spec: SceneSpec): SceneLabel[] {
       out.push({
         id: `vec-${o.id}`,
         text: o.label,
-        color: o.color ?? '#22d3ee',
+        color: o.color ?? '#0e7490',
         getPoint: (s) => {
           const origin = s.points[o.origin ?? 'pos'] ?? [0, 0, 0];
           const raw = s.vectors[o.bind] ?? [0, 0, 0];
@@ -56,7 +56,7 @@ export function deriveLabels(spec: SceneSpec): SceneLabel[] {
       out.push({
         id: `txt-${o.id}`,
         text: o.text,
-        color: o.color ?? '#94a3b8',
+        color: o.color ?? '#57534e',
         size: o.size,
         getPoint: typeof pos === 'string' ? (s) => s.points[pos] : () => pos,
       });
@@ -98,7 +98,8 @@ export function LabelProjector({
         el.style.fontSize = `${l.size ?? 11}px`;
         el.style.fontWeight = '700';
         el.style.color = l.color;
-        el.style.textShadow = '0 1px 8px rgba(0,0,0,0.95)';
+        // 浅色底用白色描边而不是黑色发光：黑字+黑影在白底上会糊成一团
+        el.style.textShadow = '0 1px 2px rgba(255,255,255,0.95), 0 0 6px rgba(255,255,255,0.8)';
         el.style.pointerEvents = 'none';
         el.style.transform = 'translate(-50%,-50%)';
         el.textContent = l.text;

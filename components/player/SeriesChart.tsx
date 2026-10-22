@@ -38,7 +38,7 @@ export function SeriesChart({ chart, all }: { chart: ChartDef; all: Record<strin
     const seriesData = chart.series.map((s) => ({ s, data: all[s.bind] ?? [] }));
     const allVals = seriesData.flatMap((x) => x.data).filter((v) => Number.isFinite(v));
     if (allVals.length < 2) {
-      ctx.fillStyle = 'rgba(148,163,184,0.35)';
+      ctx.fillStyle = 'rgba(120,113,108,0.4)';
       ctx.font = '10px ui-monospace, monospace';
       ctx.fillText('等待数据…', padL, padT + plotH / 2);
       return;
@@ -56,7 +56,7 @@ export function SeriesChart({ chart, all }: { chart: ChartDef; all: Record<strin
     max += pad;
 
     // 网格
-    ctx.strokeStyle = 'rgba(96,165,250,0.10)';
+    ctx.strokeStyle = 'rgba(28,25,23,0.10)';
     ctx.lineWidth = 1;
     for (let i = 0; i <= 3; i++) {
       const y = padT + (plotH * i) / 3;
@@ -67,7 +67,7 @@ export function SeriesChart({ chart, all }: { chart: ChartDef; all: Record<strin
     }
 
     // 刻度
-    ctx.fillStyle = 'rgba(100,116,139,0.9)';
+    ctx.fillStyle = 'rgba(87,83,78,0.95)';
     ctx.font = '9px ui-monospace, monospace';
     ctx.textAlign = 'right';
     ctx.fillText(fmtTick(max), padL - 4, padT + 4);
@@ -75,7 +75,7 @@ export function SeriesChart({ chart, all }: { chart: ChartDef; all: Record<strin
 
     // 曲线
     const n = Math.max(...seriesData.map((x) => x.data.length));
-    const colors = ['#22d3ee', '#ff8a3d', '#a3e635', '#f472b6'];
+    const colors = ['#0e7490', '#c2410c', '#4d7c0f', '#be185d'];
     seriesData.forEach((sd, si) => {
       ctx.strokeStyle = sd.s.color ?? colors[si % colors.length]!;
       ctx.lineWidth = 1.6;
@@ -99,7 +99,7 @@ export function SeriesChart({ chart, all }: { chart: ChartDef; all: Record<strin
       const col = sd.s.color ?? colors[si % colors.length]!;
       ctx.fillStyle = col;
       ctx.fillRect(lx, ly - 4, 8, 2);
-      ctx.fillStyle = 'rgba(203,213,225,0.85)';
+      ctx.fillStyle = 'rgba(68,64,60,0.9)';
       ctx.fillText(sd.s.label, lx + 11, ly);
       lx += ctx.measureText(sd.s.label).width + 22;
     });
@@ -108,11 +108,11 @@ export function SeriesChart({ chart, all }: { chart: ChartDef; all: Record<strin
   return (
     <div>
       <div className="mb-1 flex items-baseline justify-between">
-        <span className="text-[10px] font-semibold text-slate-400">{chart.title}</span>
-        {chart.yLabel ? <span className="text-[9px] text-slate-600">{chart.yLabel}</span> : null}
+        <span className="text-[10px] font-semibold text-stone-600">{chart.title}</span>
+        {chart.yLabel ? <span className="text-[9px] text-stone-500">{chart.yLabel}</span> : null}
       </div>
       <canvas ref={ref} className="block h-[68px] w-full" />
-      {chart.note ? <p className="mt-1 text-[9.5px] leading-relaxed text-slate-600">{chart.note}</p> : null}
+      {chart.note ? <p className="mt-1 text-[9.5px] leading-relaxed text-stone-500">{chart.note}</p> : null}
     </div>
   );
 }

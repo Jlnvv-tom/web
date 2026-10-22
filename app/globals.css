@@ -1,20 +1,32 @@
 @import 'tailwindcss';
 
 /* ============================================================
-   设计 token —— 与 demo/ 的深色科技风保持一致
+   设计 token —— 浅色模式（2026-10-22 从深色科技风整体切换）
+
+   切换理由不是"好看"，是**课堂可用性**：明亮教室里投影仪打深色背景会发灰、
+   对比度塌陷；浅色底在投影下反而更稳。同时与 M3 的"暖色展台"方向一致。
    ============================================================ */
 @theme {
-  --color-ink-950: #04070d;
-  --color-ink-900: #071018;
-  --color-ink-850: #0b1420;
-  --color-ink-800: #101c2a;
-  --color-ink-700: #16273a;
+  /* 表面（纸感暖白，避免纯白刺眼） */
+  --color-ink-950: #f6f3ee;
+  --color-ink-900: #fffefb;
+  --color-ink-850: #f1ede6;
+  --color-ink-800: #e9e4db;
+  --color-ink-700: #ddd7cc;
 
-  --color-cyan-glow: #22d3ee;
-  --color-cyan-soft: #67e8f9;
-  --color-amber-warm: #ff8a3d;
-  --color-red-rec: #ff4d4f;
-  --color-mint-ok: #4ade80;
+  /* 文字（stone 暖灰，避免 slate 的冷蓝调） */
+  --color-fg-1: #1c1917;
+  --color-fg-2: #292524;
+  --color-fg-3: #44403c;
+  --color-fg-4: #57534e;
+  --color-fg-5: #78716c;
+
+  /* 强调色：在浅底上要用 600/700 档，400 档对比度不足 */
+  --color-cyan-glow: #0e7490;
+  --color-cyan-soft: #155e75;
+  --color-amber-warm: #b45309;
+  --color-red-rec: #b91c1c;
+  --color-mint-ok: #047857;
 
   --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro SC', 'PingFang SC',
     'HarmonyOS Sans SC', 'Microsoft YaHei', 'Noto Sans SC', 'Segoe UI', sans-serif;
@@ -25,7 +37,7 @@
    基础
    ============================================================ */
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 html,
@@ -35,42 +47,43 @@ body {
 
 body {
   background:
-    radial-gradient(1100px 700px at 20% 8%, rgba(34, 211, 238, 0.09), transparent 62%),
-    radial-gradient(900px 620px at 84% 88%, rgba(255, 138, 61, 0.07), transparent 60%),
+    radial-gradient(1100px 700px at 20% 8%, rgba(14, 116, 144, 0.06), transparent 62%),
+    radial-gradient(900px 620px at 84% 88%, rgba(180, 83, 9, 0.05), transparent 60%),
     var(--color-ink-950);
   background-attachment: fixed;
 }
 
 ::selection {
-  background: rgba(34, 211, 238, 0.28);
+  background: rgba(14, 116, 144, 0.18);
 }
 
 /* 滚动条 */
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(96, 165, 250, 0.28) transparent;
+  scrollbar-color: rgba(120, 113, 108, 0.35) transparent;
 }
 *::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 *::-webkit-scrollbar-thumb {
-  background: rgba(96, 165, 250, 0.24);
+  background: rgba(120, 113, 108, 0.3);
   border-radius: 4px;
 }
 *::-webkit-scrollbar-thumb:hover {
-  background: rgba(96, 165, 250, 0.4);
+  background: rgba(120, 113, 108, 0.5);
 }
 
 /* ============================================================
    组件级原子类（少量、克制；复杂组件用 Tailwind 组合）
    ============================================================ */
 @utility panel {
-  background: rgba(11, 20, 32, 0.72);
-  border: 1px solid rgba(96, 165, 250, 0.16);
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(28, 25, 23, 0.1);
   border-radius: 14px;
-  backdrop-filter: blur(14px) saturate(1.2);
-  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(14px) saturate(1.1);
+  /* 浅色下阴影要"收"：深色模式下那层 48px 黑影在浅底上会变成脏灰 */
+  box-shadow: 0 1px 2px rgba(28, 25, 23, 0.06), 0 12px 32px rgba(28, 25, 23, 0.07);
 }
 
 @utility chip {
@@ -81,8 +94,8 @@ body {
   border-radius: 999px;
   font-size: 11px;
   font-weight: 600;
-  border: 1px solid rgba(34, 211, 238, 0.28);
-  background: rgba(34, 211, 238, 0.12);
+  border: 1px solid rgba(14, 116, 144, 0.22);
+  background: rgba(14, 116, 144, 0.08);
   color: var(--color-cyan-glow);
 }
 
@@ -97,28 +110,28 @@ body {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.18s ease;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.04);
-  color: rgb(203 213 225);
+  border: 1px solid rgba(28, 25, 23, 0.14);
+  background: rgba(255, 255, 255, 0.9);
+  color: rgb(68 64 60);
   white-space: nowrap;
 
   &:hover {
-    color: #fff;
-    border-color: rgba(34, 211, 238, 0.4);
-    background: rgba(34, 211, 238, 0.1);
+    color: #1c1917;
+    border-color: rgba(14, 116, 144, 0.45);
+    background: rgba(14, 116, 144, 0.07);
   }
 }
 
 @utility btn-primary {
-  background: linear-gradient(135deg, #22d3ee, #38bdf8);
-  color: #03121a;
+  background: linear-gradient(135deg, #0e7490, #0369a1);
+  color: #ffffff;
   border-color: transparent;
-  box-shadow: 0 6px 20px rgba(34, 211, 238, 0.3);
+  box-shadow: 0 6px 20px rgba(14, 116, 144, 0.22);
 
   &:hover {
-    filter: brightness(1.12);
-    color: #03121a;
-    background: linear-gradient(135deg, #22d3ee, #38bdf8);
+    filter: brightness(1.08);
+    color: #ffffff;
+    background: linear-gradient(135deg, #0e7490, #0369a1);
     border-color: transparent;
   }
 }
@@ -135,8 +148,8 @@ body {
 /* 知识点页网格背景 */
 @utility grid-bg {
   background-image:
-    linear-gradient(rgba(96, 165, 250, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(96, 165, 250, 0.04) 1px, transparent 1px);
+    linear-gradient(rgba(28, 25, 23, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(28, 25, 23, 0.05) 1px, transparent 1px);
   background-size: 46px 46px;
   mask-image: radial-gradient(ellipse 80% 70% at 50% 45%, #000 30%, transparent 78%);
   -webkit-mask-image: radial-gradient(ellipse 80% 70% at 50% 45%, #000 30%, transparent 78%);

@@ -34,25 +34,25 @@ export function Transport({ spec, store }: { spec: SceneSpec; store: PlayerStore
       {/* 字幕 */}
       <div className="mb-3 flex min-h-[52px] items-start gap-3">
         <div className="mt-0.5 flex shrink-0 items-center gap-1.5">
-          <span className="grid h-6 w-6 place-items-center rounded-md bg-cyan-400/15 text-[10px] font-bold text-cyan-300">
+          <span className="grid h-6 w-6 place-items-center rounded-md bg-cyan-600/12 text-[10px] font-bold text-cyan-800">
             {stepIndex >= 0 ? stepIndex + 1 : '·'}
           </span>
-          <span className="text-[10px] text-slate-600">/{spec.script.length}</span>
+          <span className="text-[10px] text-stone-500">/{spec.script.length}</span>
         </div>
-        <p className="flex-1 text-[12.5px] leading-relaxed text-slate-200">
+        <p className="flex-1 text-[12.5px] leading-relaxed text-stone-800">
           {step?.text ?? '按播放开始讲解，或拖动时间轴自由探索。'}
         </p>
         <div className="flex shrink-0 gap-1">
           <button
             onClick={() => gotoStep(Math.max(stepIndex - 1, 0))}
-            className="rounded-md p-1.5 text-slate-500 transition hover:bg-white/6 hover:text-slate-200"
+            className="rounded-md p-1.5 text-stone-600 transition hover:bg-stone-900/6 hover:text-stone-800"
             title="上一步"
           >
             <SkipBack size={13} />
           </button>
           <button
             onClick={() => gotoStep(Math.min(stepIndex + 1, spec.script.length - 1))}
-            className="rounded-md p-1.5 text-slate-500 transition hover:bg-white/6 hover:text-slate-200"
+            className="rounded-md p-1.5 text-stone-600 transition hover:bg-stone-900/6 hover:text-stone-800"
             title="下一步"
           >
             <SkipForward size={13} />
@@ -78,7 +78,7 @@ export function Transport({ spec, store }: { spec: SceneSpec; store: PlayerStore
             <span
               key={i}
               className={`absolute top-0 h-1 w-1 -translate-x-1/2 rounded-full ${
-                i <= stepIndex ? 'bg-cyan-400' : 'bg-slate-700'
+                i <= stepIndex ? 'bg-cyan-600' : 'bg-stone-200'
               }`}
               style={{ left: `${(s.at / duration) * 100}%` }}
             />
@@ -104,20 +104,20 @@ export function Transport({ spec, store }: { spec: SceneSpec; store: PlayerStore
           >
             <RotateCcw size={13} />
           </button>
-          <span className="font-mono text-[11px] tabular-nums text-slate-500">
+          <span className="font-mono text-[11px] tabular-nums text-stone-600">
             {time.toFixed(1)}
-            <span className="text-slate-700"> / {duration.toFixed(0)}s</span>
+            <span className="text-stone-500"> / {duration.toFixed(0)}s</span>
           </span>
         </div>
 
         <div className="flex items-center gap-1">
-          <Gauge size={12} className="text-slate-600" />
+          <Gauge size={12} className="text-stone-500" />
           {[0.25, 0.5, 1, 2].map((s) => (
             <button
               key={s}
               onClick={() => store.getState().setSpeed(s)}
               className={`rounded px-1.5 py-0.5 font-mono text-[10px] transition ${
-                speed === s ? 'bg-cyan-400/20 text-cyan-300' : 'text-slate-600 hover:text-slate-300'
+                speed === s ? 'bg-cyan-600/14 text-cyan-800' : 'text-stone-500 hover:text-stone-700'
               }`}
             >
               {s}×
@@ -127,7 +127,7 @@ export function Transport({ spec, store }: { spec: SceneSpec; store: PlayerStore
       </div>
 
       {waiting && (
-        <div className="mt-2 rounded-lg border border-amber-400/25 bg-amber-400/8 px-3 py-1.5 text-[10.5px] text-amber-200/90">
+        <div className="mt-2 rounded-lg border border-amber-700/30 bg-amber-500/10 px-3 py-1.5 text-[10.5px] text-amber-800/90">
           讲解在此处暂停，观察画面后点「播放」继续。
         </div>
       )}

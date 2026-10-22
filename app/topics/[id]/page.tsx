@@ -53,56 +53,56 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
 
       <main className="mx-auto max-w-[1400px] px-4 pb-4 sm:px-6">
         {/* ============ 面包屑 ============ */}
-        <nav className="flex flex-wrap items-center gap-1 py-4 text-[11px] text-slate-600">
-          <Link href="/" className="transition hover:text-slate-300">
+        <nav className="flex flex-wrap items-center gap-1 py-4 text-[11px] text-stone-500">
+          <Link href="/" className="transition hover:text-stone-700">
             首页
           </Link>
           <ChevronRight size={11} />
           {book ? (
             <>
-              <Link href={`/chapters/${book.id}`} className="transition hover:text-slate-300">
+              <Link href={`/chapters/${book.id}`} className="transition hover:text-stone-700">
                 {STAGE_LABEL[book.stage]} · {book.title}
               </Link>
               <ChevronRight size={11} />
             </>
           ) : null}
-          {chapter ? <span className="text-slate-500">{chapter.title}</span> : null}
+          {chapter ? <span className="text-stone-600">{chapter.title}</span> : null}
           <ChevronRight size={11} />
-          <span className="text-slate-400">三维场景</span>
+          <span className="text-stone-600">三维场景</span>
         </nav>
 
         {/* ============ 标题区 ============ */}
         <header className="mb-4">
           <div className="mb-2 flex flex-wrap items-center gap-1.5">
             <span className="chip !text-[10px]">{STAGE_LABEL[spec.meta.stage]}</span>
-            <span className="rounded-full border border-white/10 px-2 py-[3px] text-[10px] text-slate-400">
+            <span className="rounded-full border border-stone-900/14 px-2 py-[3px] text-[10px] text-stone-600">
               {DIFFICULTY_LABEL[spec.meta.difficulty]}
             </span>
             {spec.meta.dimension === '3d' ? (
-              <span className="rounded-full border border-cyan-400/25 bg-cyan-400/10 px-2 py-[3px] text-[10px] text-cyan-300">
+              <span className="rounded-full border border-cyan-700/25 bg-cyan-600/10 px-2 py-[3px] text-[10px] text-cyan-800">
                 真 3D
               </span>
             ) : null}
-            <span className="inline-flex items-center gap-1 text-[10px] text-slate-600">
+            <span className="inline-flex items-center gap-1 text-[10px] text-stone-500">
               <Clock size={10} /> 约 {spec.meta.minutes} 分钟
             </span>
             {chapter ? (
-              <span className="inline-flex items-center gap-1 text-[10px] text-slate-600">
+              <span className="inline-flex items-center gap-1 text-[10px] text-stone-500">
                 <Layers3 size={10} /> {chapter.no} {chapter.title}
               </span>
             ) : null}
           </div>
 
-          <h1 className="text-balance text-[22px] font-black leading-tight text-white sm:text-[28px]">
+          <h1 className="text-balance text-[22px] font-black leading-tight text-stone-900 sm:text-[28px]">
             {spec.meta.title}
           </h1>
           {spec.meta.subtitle ? (
-            <p className="mt-1.5 text-[12.5px] text-slate-500">{spec.meta.subtitle}</p>
+            <p className="mt-1.5 text-[12.5px] text-stone-600">{spec.meta.subtitle}</p>
           ) : null}
 
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <ExportButton spec={spec} />
-            <span className="text-[10px] text-slate-600">
+            <span className="text-[10px] text-stone-500">
               导出成单个 HTML 文件，双击即用，完全离线
             </span>
           </div>
@@ -122,13 +122,13 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
               {spec.assumptions?.length ? (
                 <section className="panel p-4">
                   <header className="mb-2 flex items-center gap-2">
-                    <Info size={12} className="text-slate-500" />
-                    <h2 className="text-[11px] font-bold tracking-[0.18em] text-slate-300">理想化假设</h2>
+                    <Info size={12} className="text-stone-600" />
+                    <h2 className="text-[11px] font-bold tracking-[0.18em] text-stone-700">理想化假设</h2>
                   </header>
                   <ul className="space-y-1.5">
                     {spec.assumptions.map((a, i) => (
-                      <li key={i} className="flex gap-1.5 text-[11px] leading-relaxed text-slate-500">
-                        <span className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-slate-700" />
+                      <li key={i} className="flex gap-1.5 text-[11px] leading-relaxed text-stone-600">
+                        <span className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-stone-200" />
                         {a}
                       </li>
                     ))}
@@ -142,22 +142,22 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
         {/* ============ 讲解全文（同时服务于 SEO 与"想读文字"的用户） ============ */}
         <section className="panel mt-4 p-5">
           <header className="mb-4 flex items-center gap-2">
-            <ListOrdered size={13} className="text-cyan-400" />
-            <h2 className="text-[12px] font-bold tracking-[0.16em] text-slate-200">讲解全文</h2>
-            <span className="ml-1 text-[10px] text-slate-600">共 {spec.script.length} 步</span>
+            <ListOrdered size={13} className="text-cyan-700" />
+            <h2 className="text-[12px] font-bold tracking-[0.16em] text-stone-800">讲解全文</h2>
+            <span className="ml-1 text-[10px] text-stone-500">共 {spec.script.length} 步</span>
           </header>
 
           <ol className="space-y-3">
             {spec.script.map((s, i) => (
               <li key={i} className="flex gap-3">
-                <span className="mt-[1px] w-8 shrink-0 font-mono text-[10.5px] tabular-nums text-slate-600">
+                <span className="mt-[1px] w-8 shrink-0 font-mono text-[10.5px] tabular-nums text-stone-500">
                   {String(i + 1).padStart(2, '0')}
                 </span>
                 <div className="min-w-0">
-                  <p className="text-[12.5px] leading-[1.9] text-slate-300">{s.text}</p>
-                  {s.note ? <p className="mt-1 text-[11px] text-slate-600">{s.note}</p> : null}
+                  <p className="text-[12.5px] leading-[1.9] text-stone-700">{s.text}</p>
+                  {s.note ? <p className="mt-1 text-[11px] text-stone-500">{s.note}</p> : null}
                   {s.params ? (
-                    <p className="mt-1 text-[10.5px] text-cyan-400/70">
+                    <p className="mt-1 text-[10.5px] text-cyan-700/70">
                       自动调参：{Object.entries(s.params).map(([k, v]) => `${k} = ${v}`).join('，')}
                     </p>
                   ) : null}
@@ -166,9 +166,9 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
             ))}
           </ol>
 
-          <div className="mt-4 flex flex-wrap gap-1.5 border-t border-white/6 pt-3">
+          <div className="mt-4 flex flex-wrap gap-1.5 border-t border-stone-900/10 pt-3">
             {spec.meta.tags.map((t) => (
-              <span key={t} className="rounded-full border border-white/8 px-2 py-[3px] text-[10px] text-slate-500">
+              <span key={t} className="rounded-full border border-stone-900/12 px-2 py-[3px] text-[10px] text-stone-600">
                 #{t}
               </span>
             ))}
@@ -182,12 +182,12 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
           {prev ? (
             <Link
               href={`/topics/${prev.meta.id}`}
-              className="panel group flex items-center gap-3 p-3.5 transition hover:border-cyan-400/30"
+              className="panel group flex items-center gap-3 p-3.5 transition hover:border-cyan-700/30"
             >
-              <ChevronRight size={14} className="rotate-180 text-slate-600" />
+              <ChevronRight size={14} className="rotate-180 text-stone-500" />
               <div className="min-w-0">
-                <div className="text-[9.5px] text-slate-600">上一个场景</div>
-                <div className="truncate text-[12px] font-medium text-slate-300 group-hover:text-white">
+                <div className="text-[9.5px] text-stone-500">上一个场景</div>
+                <div className="truncate text-[12px] font-medium text-stone-700 group-hover:text-stone-900">
                   {prev.meta.title}
                 </div>
               </div>
@@ -198,15 +198,15 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
           {next ? (
             <Link
               href={`/topics/${next.meta.id}`}
-              className="panel group flex items-center gap-3 p-3.5 text-right transition hover:border-cyan-400/30 sm:justify-end"
+              className="panel group flex items-center gap-3 p-3.5 text-right transition hover:border-cyan-700/30 sm:justify-end"
             >
               <div className="min-w-0">
-                <div className="text-[9.5px] text-slate-600">下一个场景</div>
-                <div className="truncate text-[12px] font-medium text-slate-300 group-hover:text-white">
+                <div className="text-[9.5px] text-stone-500">下一个场景</div>
+                <div className="truncate text-[12px] font-medium text-stone-700 group-hover:text-stone-900">
                   {next.meta.title}
                 </div>
               </div>
-              <ChevronRight size={14} className="text-slate-600" />
+              <ChevronRight size={14} className="text-stone-500" />
             </Link>
           ) : null}
         </nav>
