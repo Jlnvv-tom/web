@@ -1,0 +1,24 @@
+node_modules
+.next
+out
+dist
+*.log
+.env*
+.DS_Store
+.vercel
+coverage
+
+# 构建 / 类型检查产物
+tsconfig.tsbuildinfo
+.next/types
+
+# 预览壳产物与浏览器 profile（体积大，不入库）
+harness/dist
+harness/.pw-profile
+.swcx
+swc.tgz
+.next
+.pw-profile
+docs/
+demo/
+shots/
