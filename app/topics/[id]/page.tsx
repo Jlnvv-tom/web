@@ -8,6 +8,8 @@ import { ScenePlayer } from '@/components/player/ScenePlayer';
 import { FormulaCard } from '@/components/content/FormulaCard';
 import { PitfallCard } from '@/components/content/PitfallCard';
 import { QuizSection } from '@/components/content/QuizSection';
+import { TelemetryPanel } from '@/components/player/TelemetryPanel';
+import { ExportButton } from '@/components/player/ExportButton';
 import { SCENES, getScene } from '@/content/scenes';
 import { findChapter, findBook } from '@/content/chapters';
 import { DIFFICULTY_LABEL, STAGE_LABEL } from '@/engine/spec';
@@ -97,6 +99,13 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
           {spec.meta.subtitle ? (
             <p className="mt-1.5 text-[12.5px] text-slate-500">{spec.meta.subtitle}</p>
           ) : null}
+
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <ExportButton spec={spec} />
+            <span className="text-[10px] text-slate-600">
+              导出成单个 HTML 文件，双击即用，完全离线
+            </span>
+          </div>
         </header>
 
         {/* ============ 播放器 + 内容 ============ */}
@@ -165,6 +174,8 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
             ))}
           </div>
         </section>
+
+        <TelemetryPanel sceneId={spec.meta.id} />
 
         {/* ============ 上下篇 ============ */}
         <nav className="mt-4 grid gap-3 sm:grid-cols-2">

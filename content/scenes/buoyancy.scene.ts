@@ -30,7 +30,17 @@ export const buoyancyScene: SceneSpec = {
 
   camera: { position: [0.55, 0.36, 0.7], target: [0, -0.2, 0], fov: 45 },
 
-  world: { gridSize: 1.6, gridDivisions: 12, showGrid: true, showAxis: false },
+  // 装饰层：拖密度/边长时，方块会挤压一下——只改 scale，不改任何物理量
+  decor: { subject: 'block', squash: 0.08 },
+
+  // 台面与水槽底部齐平：容器"放在桌上"，而不是浮在虚空里（M3 · W1）
+  world: {
+    gridSize: 1.6,
+    gridDivisions: 12,
+    showGrid: true,
+    showAxis: false,
+    stage: { kind: 'table', y: -TANK_DEPTH, size: 1.65, contact: 0.46 },
+  },
 
   params: [
     {
@@ -104,8 +114,20 @@ export const buoyancyScene: SceneSpec = {
       position: 'blockC',
       round: 0.012,
       color: '#e8931a',
-      metalness: 0.08,
-      roughness: 0.72,
+      // 果冻感：ρ=600 的物体本来就该"半透着一股暖橙"，比哑光塑料像实物
+      material: 'jelly',
+    },
+
+    /* 参照物：一把木尺，给"边长 20 cm"一个可比对象（计划 §4.5 第 4 条） */
+    {
+      type: 'box',
+      id: 'ref-ruler',
+      size: [0.34, 0.008, 0.03],
+      position: [-0.58, -TANK_DEPTH + 0.005, 0.3],
+      rotation: [0, 0.42, 0],
+      round: 0.003,
+      material: 'wood',
+      color: '#E9D6B4',
     },
 
     /* ---------- 平衡位置提示点（漂浮时底面应停在这里） ---------- */

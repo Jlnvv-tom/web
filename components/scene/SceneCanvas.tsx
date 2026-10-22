@@ -10,6 +10,7 @@ import type { StateRef } from './objects';
 import { ObjectView } from './objects';
 import { SceneRuntime } from './SceneRuntime';
 import { LabelProjector, deriveLabels } from './labels';
+import { STAGE_DEFAULTS, StageBackdrop, StageLights, TableTop } from './Stage';
 
 /* ============================================================
    程序化环境反射（替代 HDRI 文件，保证零外部资源）
@@ -159,7 +160,17 @@ const DUST_COUNT = 700;
  * 早先写死 0.42，在 20 m 的电场场景里是细雪，在 1 m 的单摆场景里
  * 变成糊满全屏的散景圆斑，把主体完全盖住——这就是典型的"看起来像 bug 的默认值"。
  */
-function SceneDust({ spread = 90, size = 0.42 }: { spread?: number; size?: number }) {
+function SceneDust({
+  spread = 90,
+  size = 0.42,
+  color = '#8fd8f0',
+  opacity = 0.34,
+}: {
+  spread?: number;
+  size?: number;
+  color?: string;
+  opacity?: number;
+}) {
   const points = useRef<THREE.Points>(null);
 
   const { positions, speeds } = useMemo(() => {
@@ -197,9 +208,9 @@ function SceneDust({ spread = 90, size = 0.42 }: { spread?: number; size?: numbe
       <pointsMaterial
         size={size}
         map={getDustTexture()}
-        color="#8fd8f0"
+        color={color}
         transparent
-        opacity={0.34}
+        opacity={opacity}
         depthWrite={false}
         blending={THREE.AdditiveBlending}
         sizeAttenuation
@@ -216,13 +227,81 @@ function HighlightGroup({
   active,
   children,
   onClick,
+  pulse,
+  squash = 0.07,
 }: {
   highlighted: boolean;
   active: boolean;
   children: React.ReactNode;
   onClick?: (e: { stopPropagation: () => void }) => void;
+  /** 参数变化脉冲源。传了才做挤压反馈（只有"主角"需要） */
+  pulse?: () => number;
+  /** 挤压幅度 */
+  squash?: number;
 }) {
   const ref = useRef<THREE.Group>(null);
+  const gl = useThree((s) => s.gl);
+  const [hovered, setHovered] = useState(false);
+
+  /* 手感状态：hover 的抬升是缓动，点击/改参是弹簧 */
+  const lift = useRef(1);
+  const spring = useRef({ x: 0, v: 0 });
+  const lastPulse = useRef(0);
+
+  /**
+   * 光标直接写在事件里，不用 effect。
+   *
+   * 用 effect 时出现过"点了有反应、hover 却没有光标"：`onPointerOver`
+   * 只在"进入对象"的那一帧触发，而 R3F 的重渲染可能把这次进入状态吃掉。
+   * 直接在事件回调里写 DOM 样式，绕过 React 的调度，行为立刻可预测。
+   */
+  const setHover = (on: boolean) => {
+    if (on) setHovered(true);
+    gl.domElement.style.cursor = on ? 'pointer' : '';
+  };
+
+  useEffect(() => {
+    return () => {
+      gl.domElement.style.cursor = '';
+    };
+  }, [gl]);
+
+  useFrame((_, dt) => {
+    const g = ref.current;
+    if (!g) return;
+
+    // 参数脉冲：连续拖动时每次都重新触发，而不是"一直保持变形"
+    if (pulse) {
+      const n = pulse();
+      if (n !== lastPulse.current) {
+        lastPulse.current = n;
+        spring.current.x = -0.85;
+        spring.current.v = 0;
+      }
+    }
+
+    // 阻尼弹簧：k=260 / c=11 时约 200 ms 收敛，且有约 30% 的过冲（有"弹"的观感）
+    const d = Math.min(dt, 0.05);
+    const s = spring.current;
+    s.v += (-260 * s.x - 11 * s.v) * d;
+    s.x += s.v * d;
+    s.x = Math.max(-1.5, Math.min(1.5, s.x));
+
+    // hover 抬升走缓动，不用弹簧（否则鼠标划过会一直抖）
+    const targetLift = hovered ? 1.025 : 1;
+    lift.current += (targetLift - lift.current) * Math.min(1, d * 16);
+
+    // 挤压：y 变扁、xz 变胖，体积感才对
+    const q = s.x * squash;
+    const L = lift.current;
+    g.scale.set(L * (1 - q * 0.45), L * (1 + q), L * (1 - q * 0.45));
+  });
+
+  /** 点击：给弹簧一个初始位移，让它自己回弹（1 → 0.93 → 1.02 → 1） */
+  const kick = () => {
+    spring.current.x = -1;
+    spring.current.v = 0;
+  };
 
   useLayoutEffect(() => {
     const g = ref.current;
@@ -249,7 +328,20 @@ function HighlightGroup({
   }, [highlighted, active]);
 
   return (
-    <group ref={ref} onClick={onClick}>
+    <group
+      ref={ref}
+      onClick={(e) => {
+        kick();
+        onClick?.(e);
+      }}
+      onPointerOver={(e) => {
+        e.stopPropagation();
+        setHover(true);
+      }}
+      // 兜底：某些浏览器/几何体上 pointerover 不触发，但 pointermove 一定触发
+      onPointerMove={() => setHover(true)}
+      onPointerOut={() => setHover(false)}
+    >
       {children}
     </group>
   );
@@ -258,7 +350,18 @@ function HighlightGroup({
 /* ============================================================
    场景内容（订阅 stepIndex，仅在切换讲解步骤时重渲染）
    ============================================================ */
-function SceneObjects({ spec, store, stateRef }: { spec: SceneSpec; store: PlayerStoreApi; stateRef: StateRef }) {
+function SceneObjects({
+  spec,
+  store,
+  stateRef,
+  hideGrid = false,
+}: {
+  spec: SceneSpec;
+  store: PlayerStoreApi;
+  stateRef: StateRef;
+  /** 有展台时不再画线框网格：网格画在 y=0 会浮在台面中间，比没有更难解释 */
+  hideGrid?: boolean;
+}) {
   const stepIndex = store((s) => s.stepIndex);
   const selectedId = store((s) => s.selectedId);
 
@@ -276,11 +379,18 @@ function SceneObjects({ spec, store, stateRef }: { spec: SceneSpec; store: Playe
 
   return (
     <>
-      {spec.objects.map((def) => (
+      {spec.objects
+        .filter((def) => !(hideGrid && def.type === 'grid'))
+        .map((def) => (
         <HighlightGroup
           key={def.id}
           highlighted={highlighted.has(def.id)}
           active={active}
+          // 只有场景声明的"主角"对参数变化做挤压，其余物体保持静止
+          pulse={
+            def.id === spec.decor?.subject ? () => store.getState().paramPulse.n : undefined
+          }
+          squash={spec.decor?.squash}
           onClick={(e) => {
             e.stopPropagation();
             const st = store.getState();
@@ -319,6 +429,17 @@ export function SceneCanvas({
     return Math.max(0.2, Math.hypot(x - tx, y - ty, z - tz));
   }, [spec.camera.position, spec.camera.target]);
 
+  /* ---------- 展台（M3 · W1）：不写 world.stage 时行为与 M2 完全一致 ---------- */
+  const stage = spec.world.stage;
+  const staged = stage?.kind === 'table';
+  const stageHalf = stage?.size ?? camDist * 0.85;
+  const stageY = stage?.y ?? 0;
+  // 不写 surface 时用材质预设自己的色（木纹预设的色比纯色更暖一点）
+  const stageSurface = stage?.surface;
+  const stageBackdrop = stage?.backdrop ?? STAGE_DEFAULTS.backdrop;
+  // 阴影是新的 GPU 开销，默认开启但允许场景关掉（低端机/平板）
+  const shadowsOn = staged && (stage?.shadows ?? true);
+
   const [labelHost, setLabelHost] = useState<HTMLDivElement | null>(null);
   const labelsVisible = store((s) => s.labelsVisible);
   const labels = useMemo(() => deriveLabels(spec), [spec]);
@@ -333,11 +454,44 @@ export function SceneCanvas({
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
+  /**
+   * 入场转场（M3 · W3）。
+   *
+   * 场景切换是整页导航，没有共享的 3D 上下文可以插值，所以用"淡入 + 3% 推近"
+   * 模拟镜头推进：180 ms，和参考站那种"画面原地长出来"的观感一致。
+   * 这是纯 CSS，不占 GPU，也不影响 canvas 的渲染循环。
+   */
+  const [entered, setEntered] = useState(false);
+  const motionOk = useMemo(() => {
+    try {
+      return !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    } catch {
+      return true;
+    }
+  }, []);
+
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setEntered(true));
+    return () => cancelAnimationFrame(id);
+  }, [spec.meta.id]);
+
   return (
-    <div className="relative h-full w-full">
+    <div
+      className="relative h-full w-full"
+      style={
+        motionOk
+          ? {
+              opacity: entered ? 1 : 0,
+              transform: entered ? 'scale(1)' : 'scale(1.03)',
+              transition: 'opacity 180ms ease-out, transform 180ms ease-out',
+            }
+          : undefined
+      }
+    >
       <Canvas
         dpr={[1, 2]}
         frameloop="always"
+        shadows={shadowsOn ? 'soft' : false}
         camera={{
           position: spec.camera.position,
           fov: spec.camera.fov ?? 45,
@@ -352,21 +506,46 @@ export function SceneCanvas({
         }}
         onCreated={({ gl }) => {
           gl.toneMapping = THREE.ACESFilmicToneMapping;
-          gl.toneMappingExposure = 1.15;
+          // 台面变亮后要压回曝光，否则高光整片糊掉
+          gl.toneMappingExposure = staged ? 0.86 : 1.15;
           gl.outputColorSpace = THREE.SRGBColorSpace;
         }}
       >
-        <ProceduralEnv />
-        <Lights />
+        {staged ? <StageBackdrop color={stageBackdrop} /> : null}
+        {/* 展台场景压暗环境反射：暖光环境里不该有青蓝色反光 */}
+        <ProceduralEnv intensity={staged ? 0.55 : 1} />
+        {staged ? <StageLights half={stageHalf} y={stageY} /> : <Lights />}
         {/* 雾：让远处元素自然退到暗部，画面有纵深（范围随场景尺度缩放） */}
-        <fog attach="fog" args={['#04070d', camDist * 0.55, camDist * 3.6]} />
+        <fog
+          attach="fog"
+          args={
+            staged
+              ? [stageBackdrop, camDist * 2.2, camDist * 9]
+              : ['#04070d', camDist * 0.55, camDist * 3.6]
+          }
+        />
+        {staged ? <TableTop
+          y={stageY}
+          half={stageHalf}
+          surface={stageSurface}
+          material={stage?.material ?? 'wood'}
+          contact={stage?.contact}
+        /> : null}
         <SceneDust
           spread={Math.min(90, Math.max(6, camDist * 1.6))}
           size={Math.min(2.2, Math.max(0.012, camDist * 0.035))}
+          color={staged ? '#FFE7C4' : '#8fd8f0'}
+          opacity={staged ? 0.16 : 0.34}
         />
-        {bloom ? <PostFX /> : null}
+        {bloom ? (
+          <PostFX
+            strength={staged ? 0.16 : 0.62}
+            threshold={staged ? 0.86 : 0.6}
+            radius={staged ? 0.35 : 0.55}
+          />
+        ) : null}
         <SceneRuntime spec={spec} store={store} stateRef={stateRef} />
-        <SceneObjects spec={spec} store={store} stateRef={stateRef} />
+        <SceneObjects spec={spec} store={store} stateRef={stateRef} hideGrid={staged} />
         <LabelProjector labels={labels} stateRef={stateRef} host={labelHost} visible={labelsVisible} />
         <OrbitControls
           makeDefault
@@ -385,12 +564,17 @@ export function SceneCanvas({
       {/* 3D 标签的 DOM 覆盖层（不参与 React 渲染，由 LabelProjector 逐帧定位） */}
       <div ref={setLabelHost} className="pointer-events-none absolute inset-0 overflow-hidden" />
 
-      {/* 暗角：压住四角，把注意力收到画面中心 */}
+      {/* 暗角：压住四角，把注意力收到画面中心。
+          展台场景改用暖色半透明：冷黑暗角压在暖台面上会像"镜头上蒙了脏东西" */}
       <div
         className="pointer-events-none absolute inset-0"
         style={{
-          background:
-            'radial-gradient(ellipse at 50% 46%, rgba(0,0,0,0) 42%, rgba(2,5,10,0.55) 78%, rgba(1,3,7,0.9) 100%)',
+          // 展台场景几乎不要暗角：实测顶部被 0.62 的黑压到 L=0.046，
+          // 而背景本身是 0.094——"暗部占比"一直降不下来，元凶是这层 CSS 而不是 3D。
+          // 深色科技风需要暗角收边，暖色展台不需要（参考站也没有）。
+          background: staged
+            ? 'radial-gradient(ellipse at 50% 44%, rgba(0,0,0,0) 62%, rgba(20,15,10,0.10) 84%, rgba(14,10,7,0.26) 100%)'
+            : 'radial-gradient(ellipse at 50% 46%, rgba(0,0,0,0) 42%, rgba(2,5,10,0.55) 78%, rgba(1,3,7,0.9) 100%)',
         }}
       />
     </div>

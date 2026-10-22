@@ -3,6 +3,7 @@
 import type { ChartDef, ReadoutDef } from '@/engine/spec';
 import type { PlayerStoreApi } from '@/engine/store';
 import { SeriesChart } from './SeriesChart';
+import { EasedNumber } from './EasedNumber';
 
 export function Hud({ readouts, charts, store }: { readouts: ReadoutDef[]; charts?: ChartDef[]; store: PlayerStoreApi }) {
   const hud = store((s) => s.hud);
@@ -18,12 +19,6 @@ export function Hud({ readouts, charts, store }: { readouts: ReadoutDef[]; chart
         {readouts.map((r) => {
           const isMeta = r.bind.startsWith('meta.');
           const raw = isMeta ? hud.meta[r.bind.slice(5)] : hud.scalars[r.bind];
-          const text =
-            typeof raw === 'number'
-              ? raw.toFixed(r.digits ?? 2)
-              : typeof raw === 'string'
-                ? raw
-                : '—';
           return (
             <div key={r.bind} title={r.hint} className={isMeta ? 'col-span-2 min-w-0' : 'min-w-0'}>
               <dt className="truncate text-[10px] text-slate-500">{r.label}</dt>
@@ -32,7 +27,14 @@ export function Hud({ readouts, charts, store }: { readouts: ReadoutDef[]; chart
                   r.constant ? 'text-emerald-300' : 'text-slate-100'
                 }`}
               >
-                {text}
+                {typeof raw === 'number' ? (
+                  // 数字走补间：滑块一动，读数是"滚"过去的，不是"跳"过去的
+                  <EasedNumber value={raw} digits={r.digits ?? 2} />
+                ) : typeof raw === 'string' ? (
+                  raw
+                ) : (
+                  '—'
+                )}
                 {r.unit ? <span className="ml-0.5 text-[9.5px] font-normal text-slate-500">{r.unit}</span> : null}
               </dd>
             </div>

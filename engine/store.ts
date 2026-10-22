@@ -13,6 +13,14 @@ export type HudSnapshot = {
 type PlayerStore = {
   /** 参数（用户可调） */
   params: ParamValues;
+  /**
+   * 用户改参数的脉冲计数（M3 · W3）。
+   *
+   * 只给**装饰层**用：滑块一动，主角物体做一次挤压回弹，让"我改的东西生效了"
+   * 有触感。它不进入求解器、不参与任何物理量——`sample(t)` 里拿不到它。
+   * 用计数器而不是布尔量，是因为连续拖动需要"每次都触发"，而不是"一直为真"。
+   */
+  paramPulse: { n: number; key: string | null };
   setParam: (key: string, value: number | boolean | string) => void;
   /** 用户点击"验证"时应用参数：重置时间轴 */
   applyParams: (patch: ParamValues) => void;
@@ -55,10 +63,18 @@ type PlayerStore = {
 export const createPlayerStore = (spec: SceneSpec) =>
   create<PlayerStore>((set, get) => ({
     params: defaultParams(spec.params),
+    paramPulse: { n: 0, key: null },
     setParam: (key, value) =>
       set((s) => {
         const next = { ...s.params, [key]: value };
-        return { params: next, time: 0, seekRequest: 0, stepIndex: -1, waiting: false };
+        return {
+          params: next,
+          paramPulse: { n: s.paramPulse.n + 1, key },
+          time: 0,
+          seekRequest: 0,
+          stepIndex: -1,
+          waiting: false,
+        };
       }),
     applyParams: (patch) =>
       set((s) => ({

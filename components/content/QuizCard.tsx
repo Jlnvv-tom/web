@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Check, PlayCircle, RotateCcw, Target, X } from 'lucide-react';
 import type { QuizDef } from '@/engine/spec';
 import type { PlayerStoreApi } from '@/engine/store';
+import { getTelemetry } from '@/engine/telemetry';
 
 /**
  * 预测 → 观察 → 解释（POE）
@@ -11,13 +12,32 @@ import type { PlayerStoreApi } from '@/engine/store';
  * 这是本产品与"看视频"的根本区别：学生必须先押一个答案，
  * 再让 3D 场景把参数改成他选的那一种，亲眼看到结果。
  */
-export function QuizCard({ quizzes, store }: { quizzes: QuizDef[]; store: PlayerStoreApi }) {
+export function QuizCard({
+  quizzes,
+  store,
+  sceneId,
+}: {
+  quizzes: QuizDef[];
+  store: PlayerStoreApi;
+  sceneId: string;
+}) {
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [revealed, setRevealed] = useState<Record<number, boolean>>({});
+  /**
+   * 已经记过埋点的题号。
+   * 只记**首次作答**：点「重做」时答案已经被看过，再选对不能算会了；
+   * 用 ref 而不是 state，是因为它不该触发重渲染，也不该被「重做」清掉。
+   */
+  const logged = useRef<Set<number>>(new Set());
 
   if (!quizzes.length) return null;
 
   const choose = (qi: number, oi: number) => {
+    const q = quizzes[qi]!;
+    if (!logged.current.has(qi)) {
+      logged.current.add(qi);
+      getTelemetry().trackQuiz(sceneId, qi, oi, q.answer);
+    }
     setAnswers((a) => ({ ...a, [qi]: oi }));
     setRevealed((r) => ({ ...r, [qi]: true }));
   };
