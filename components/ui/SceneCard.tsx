@@ -2,10 +2,8 @@ import Link from 'next/link';
 import { ArrowRight, Clock, Sparkles } from 'lucide-react';
 import type { SceneSummary } from '@/content/scenes';
 import { DIFFICULTY_LABEL, STAGE_LABEL } from '@/engine/spec';
-import { findChapter } from '@/content/chapters';
 
 export function SceneCard({ s }: { s: SceneSummary }) {
-  const chapter = findChapter(s.chapterId);
 
   return (
     <Link
@@ -26,18 +24,16 @@ export function SceneCard({ s }: { s: SceneSummary }) {
       </h3>
       <p className="mt-1.5 line-clamp-2 text-[11.5px] leading-relaxed text-stone-600">{s.pitch}</p>
 
-      <div className="mt-auto flex flex-wrap items-center gap-2 pt-3 text-[10px] text-stone-500">
+      {/* 只留"决策信息"：要花多少时间、讲解有多细。
+          章节归属删掉了 —— 点进去面包屑就有，在这里重复一遍只是噪声。
+          字号从 10px 提到 11px：这是老师决定"点不点"的依据，不该是几乎看不见的字。 */}
+      <div className="mt-auto flex flex-wrap items-center gap-2.5 pt-3 text-[11px] text-stone-600">
         <span className="inline-flex items-center gap-1">
-          <Clock size={10} /> {s.minutes} 分钟
+          <Clock size={11} /> {s.minutes} 分钟
         </span>
         <span className="inline-flex items-center gap-1">
-          <Sparkles size={10} /> {s.demoCount} 步讲解
+          <Sparkles size={11} /> {s.demoCount} 步讲解
         </span>
-        {chapter ? (
-          <span className="truncate text-stone-500">
-            {chapter.no} {chapter.title}
-          </span>
-        ) : null}
         <ArrowRight
           size={12}
           className="ml-auto shrink-0 text-stone-500 transition group-hover:translate-x-0.5 group-hover:text-cyan-700"

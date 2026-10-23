@@ -74,6 +74,7 @@ export function ScenePlayer() {
             <button
               onClick={toggleLabels}
               title={labelsVisible ? '隐藏对象标注' : '显示对象标注'}
+              aria-label={labelsVisible ? '隐藏对象标注' : '显示对象标注'}
               className={`grid h-7 w-7 place-items-center rounded-lg border backdrop-blur transition ${
                 labelsVisible
                   ? 'border-cyan-700/40 bg-cyan-600/12 text-cyan-800'

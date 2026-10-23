@@ -21,9 +21,9 @@ export function Hud({ readouts, charts, store }: { readouts: ReadoutDef[]; chart
           const raw = isMeta ? hud.meta[r.bind.slice(5)] : hud.scalars[r.bind];
           return (
             <div key={r.bind} title={r.hint} className={isMeta ? 'col-span-2 min-w-0' : 'min-w-0'}>
-              <dt className="truncate text-[10px] text-stone-600">{r.label}</dt>
+              <dt className="truncate text-[10.5px] text-stone-600">{r.label}</dt>
               <dd
-                className={`font-mono text-[13px] font-semibold tabular-nums ${
+                className={`font-mono text-[14px] font-bold tabular-nums ${
                   r.constant ? 'text-emerald-700' : 'text-stone-900'
                 }`}
               >
@@ -35,7 +35,7 @@ export function Hud({ readouts, charts, store }: { readouts: ReadoutDef[]; chart
                 ) : (
                   '—'
                 )}
-                {r.unit ? <span className="ml-0.5 text-[9.5px] font-normal text-stone-600">{r.unit}</span> : null}
+                {r.unit ? <span className="ml-0.5 text-[10.5px] font-medium text-stone-600">{r.unit}</span> : null}
               </dd>
             </div>
           );

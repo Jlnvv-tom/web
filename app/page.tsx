@@ -1,8 +1,8 @@
 import Link from 'next/link';
-import { ArrowRight, Compass, MousePointerClick, Move3d, Orbit, SlidersHorizontal } from 'lucide-react';
+import { ArrowRight, Boxes, Compass, Orbit, SlidersHorizontal, Target, WifiOff } from 'lucide-react';
 import { SiteHeader, SiteFooter } from '@/components/ui/SiteHeader';
 import { SceneCard } from '@/components/ui/SceneCard';
-import { HeroOrbit } from '@/components/ui/HeroOrbit';
+import { HeroMascots } from '@/components/ui/HeroMascots';
 import { sceneSummaries } from '@/content/scenes';
 import { BOOKS } from '@/content/chapters';
 
@@ -19,13 +19,13 @@ export default function HomePage() {
         {/* ============ Hero ============
             参照 Sentry 的做法：一句大标题 + 一句副标题 + 两个 CTA + 一个会动的画面。
             不放版本号、不放统计数字 —— 那些东西只会让人觉得"这是个半成品"。 */}
-        <section className="grid-bg relative -mx-4 overflow-hidden px-4 pb-14 pt-12 sm:-mx-6 sm:px-6 sm:pt-16">
+        <section className="grid-bg relative -mx-4 overflow-hidden px-4 pb-16 pt-10 sm:-mx-6 sm:px-6 sm:pt-14">
           <div className="relative mx-auto grid max-w-5xl items-center gap-10 lg:grid-cols-[1.15fr_0.85fr] lg:gap-6">
             <div className="text-center lg:text-left">
-              <span className="chip mx-auto mb-5 lg:mx-0">
+              <span className="chip mx-auto mb-5 !text-[12px] lg:mx-0">
                 <Orbit size={11} /> 人教版教材同步 · 初高中全覆盖
               </span>
-              <h1 className="text-balance text-[30px] font-black leading-[1.15] tracking-tight text-stone-900 sm:text-[44px]">
+              <h1 className="text-balance text-[34px] font-black leading-[1.08] tracking-tight text-stone-900 sm:text-[50px] lg:text-[58px]">
                 把抽象的物理规律
                 <br className="sm:hidden" />
                 变成<span className="bg-gradient-to-r from-cyan-700 to-sky-700 bg-clip-text text-transparent">能转、能调、能讲透</span>的画面
@@ -45,20 +45,9 @@ export default function HomePage() {
                 </Link>
               </div>
 
-              <ul className="mx-auto mt-9 flex max-w-lg flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[11px] text-stone-600 lg:mx-0 lg:justify-start">
-                <li className="flex items-center gap-1.5">
-                  <Move3d size={12} className="text-cyan-700/80" /> 真 3D 自由视角
-                </li>
-                <li className="flex items-center gap-1.5">
-                  <SlidersHorizontal size={12} className="text-cyan-700/80" /> 参数实时可调
-                </li>
-                <li className="flex items-center gap-1.5">
-                  <MousePointerClick size={12} className="text-cyan-700/80" /> 点击对象可高亮
-                </li>
-              </ul>
             </div>
 
-            <HeroOrbit />
+            <HeroMascots />
           </div>
         </section>
 
@@ -135,25 +124,44 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* ============ 方法与诚实 ============ */}
-        <section className="mt-14 grid gap-3 sm:grid-cols-3">
+        {/* ============ 方法与诚实 ============
+            参照 LottieFiles：每张卡一个彩色圆角图标块 + 粗标题 + 一行说明，
+            四张并排。原来三张纯文字面板，太"文档"。 */}
+        <section className="mt-14 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[
             {
+              icon: Boxes,
+              tint: 'cyan',
               t: '只做"真的需要 3D"的知识点',
               d: '受力分析图 2D 更清楚，就不做 3D。只有洛伦兹力、等势面、天体轨道这类"平面图讲不明白"的才上三维。',
             },
             {
+              icon: SlidersHorizontal,
+              tint: 'amber',
               t: '参数可调，结论可验证',
               d: '每个场景的参数都由解析解驱动，调完立刻重算。看到的现象和教材公式严丝合缝，不是预渲染动画。',
             },
             {
+              icon: Target,
+              tint: 'violet',
               t: '先预测，再看结果',
               d: '练习采用 POE 结构：押一个答案，再一键把参数改成你选的那个条件，亲眼验证——错一次比看十遍有用。',
             },
+            {
+              icon: WifiOff,
+              tint: 'emerald',
+              t: '离线可用，不依赖网络',
+              d: '整个站点可导出成单个 HTML 文件，拷进 U 盘在任何一台电脑的浏览器上都能转——教室里没网也能讲。',
+            },
           ].map((x) => (
             <div key={x.t} className="panel p-4">
-              <h3 className="text-[12.5px] font-semibold text-stone-900">{x.t}</h3>
-              <p className="mt-2 text-[11px] leading-[1.85] text-stone-600">{x.d}</p>
+              <span
+                className={`mb-3 grid h-9 w-9 place-items-center rounded-xl bg-${x.tint}-600/10 text-${x.tint}-700`}
+              >
+                <x.icon size={17} aria-hidden="true" />
+              </span>
+              <h3 className="text-[12.5px] font-semibold leading-snug text-stone-900">{x.t}</h3>
+              <p className="mt-1.5 text-[11px] leading-[1.85] text-stone-600">{x.d}</p>
             </div>
           ))}
         </section>

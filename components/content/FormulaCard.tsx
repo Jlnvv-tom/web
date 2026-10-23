@@ -23,7 +23,7 @@ export function FormulaCard({ formulas, mathml = false }: { formulas: FormulaDef
         {formulas.map((f, i) => (
           <div key={i} className="rounded-xl border border-stone-900/10 bg-white/[0.025] px-3 py-2.5">
             <div
-              className="formula text-[15px] text-stone-900"
+              className="formula text-[17px] text-stone-900"
               dangerouslySetInnerHTML={{
                 __html: katex.renderToString(f.tex, {
                   displayMode: true,
@@ -34,7 +34,7 @@ export function FormulaCard({ formulas, mathml = false }: { formulas: FormulaDef
               }}
             />
             {f.caption ? (
-              <p className="mt-1.5 text-[11px] leading-relaxed text-stone-600">{f.caption}</p>
+              <p className="mt-2 text-[11.5px] leading-[1.75] text-stone-600">{f.caption}</p>
             ) : null}
           </div>
         ))}

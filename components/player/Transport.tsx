@@ -47,15 +47,17 @@ export function Transport({ spec, store }: { spec: SceneSpec; store: PlayerStore
             onClick={() => gotoStep(Math.max(stepIndex - 1, 0))}
             className="rounded-md p-1.5 text-stone-600 transition hover:bg-stone-900/6 hover:text-stone-800"
             title="上一步"
+            aria-label="上一步"
           >
-            <SkipBack size={13} />
+            <SkipBack size={13} aria-hidden="true" />
           </button>
           <button
             onClick={() => gotoStep(Math.min(stepIndex + 1, spec.script.length - 1))}
             className="rounded-md p-1.5 text-stone-600 transition hover:bg-stone-900/6 hover:text-stone-800"
             title="下一步"
+            aria-label="下一步"
           >
-            <SkipForward size={13} />
+            <SkipForward size={13} aria-hidden="true" />
           </button>
         </div>
       </div>
@@ -89,7 +91,8 @@ export function Transport({ spec, store }: { spec: SceneSpec; store: PlayerStore
       {/* 控制 */}
       <div className="mt-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <button onClick={toggle} className="btn btn-primary !px-3 !py-1.5" title="播放 / 暂停（空格）">
+          <button onClick={toggle} className="btn btn-primary !px-3 !py-1.5" title="播放 / 暂停（空格）"
+          aria-label="播放 / 暂停">
             {playing ? <Pause size={14} /> : <Play size={14} />}
             <span className="text-[11.5px]">{playing ? '暂停' : '播放'}</span>
           </button>
@@ -101,8 +104,9 @@ export function Transport({ spec, store }: { spec: SceneSpec; store: PlayerStore
             }}
             className="btn !px-2.5 !py-1.5"
             title="从头播放"
+            aria-label="从头播放"
           >
-            <RotateCcw size={13} />
+            <RotateCcw size={13} aria-hidden="true" />
           </button>
           <span className="font-mono text-[11px] tabular-nums text-stone-600">
             {time.toFixed(1)}
