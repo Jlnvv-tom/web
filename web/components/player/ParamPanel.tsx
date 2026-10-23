@@ -3,6 +3,7 @@
 import type { ParamDef } from '@/engine/spec';
 import type { PlayerStoreApi } from '@/engine/store';
 import { getTelemetry, type ParamValue } from '@/engine/telemetry';
+import { HintToggle } from '@/components/ui/HintToggle';
 
 export function ParamPanel({
   spec,
@@ -46,12 +47,20 @@ export function ParamPanel({
             return (
               <div key={p.key}>
                 <div className="mb-1.5 flex items-baseline justify-between gap-2">
-                  <label htmlFor={`p-${p.key}`} className="text-[11.5px] text-stone-700">
-                    {p.label}
-                  </label>
-                  <span className="font-mono text-[11.5px] font-semibold tabular-nums text-cyan-800">
+                  <span className="flex items-center gap-1">
+                    <label htmlFor={`p-${p.key}`} className="text-[12px] font-medium text-stone-800">
+                      {p.label}
+                    </label>
+                    {/* 说明收进图标：默认不占地方，想看的人点一下就有。
+                        不用 hover —— 平板上没有 hover，老师会永远看不到。 */}
+                    {p.hint ? (
+                      <HintToggle label={`${p.label}的说明`}>{p.hint}</HintToggle>
+                    ) : null}
+                  </span>
+                  {/* 数值是"调完之后最该被看见的东西"，从 11.5px 提到 13.5px */}
+                  <span className="font-mono text-[13.5px] font-bold tabular-nums text-cyan-800">
                     {formatNum(display)}
-                    {p.unit ? <span className="ml-0.5 text-[10px] text-stone-600">{p.unit}</span> : null}
+                    {p.unit ? <span className="ml-0.5 text-[11px] font-medium text-stone-600">{p.unit}</span> : null}
                   </span>
                 </div>
                 <input
@@ -64,7 +73,6 @@ export function ParamPanel({
                   onChange={(e) => change(p.key, v, Number(e.target.value))}
                   className="range-input w-full"
                 />
-                {p.hint ? <p className="mt-1 text-[10px] leading-relaxed text-stone-500">{p.hint}</p> : null}
               </div>
             );
           }
@@ -73,7 +81,7 @@ export function ParamPanel({
             const v = typeof params[p.key] === 'boolean' ? (params[p.key] as boolean) : p.default;
             return (
               <label key={p.key} className="flex cursor-pointer items-center justify-between gap-2">
-                <span className="text-[11.5px] text-stone-700">{p.label}</span>
+                <span className="text-[12px] font-medium text-stone-800">{p.label}</span>
                 <button
                   type="button"
                   role="switch"
@@ -96,13 +104,13 @@ export function ParamPanel({
           const v = typeof params[p.key] === 'string' ? (params[p.key] as string) : p.default;
           return (
             <div key={p.key}>
-              <div className="mb-1.5 text-[11.5px] text-stone-700">{p.label}</div>
+              <div className="mb-1.5 text-[12px] font-medium text-stone-800">{p.label}</div>
               <div className="flex flex-wrap gap-1.5">
                 {p.options.map((o) => (
                   <button
                     key={o.value}
                     onClick={() => change(p.key, v, o.value)}
-                    className={`rounded-full border px-2.5 py-1 text-[10.5px] transition ${
+                    className={`rounded-full border px-2.5 py-1 text-[11px] transition ${
                       v === o.value
                         ? 'border-cyan-700/55 bg-cyan-600/12 text-cyan-800'
                         : 'border-stone-900/14 text-stone-600 hover:border-stone-900/20'

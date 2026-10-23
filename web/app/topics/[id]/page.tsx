@@ -53,7 +53,7 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
 
       <main className="mx-auto max-w-[1400px] px-4 pb-4 sm:px-6">
         {/* ============ 面包屑 ============ */}
-        <nav className="flex flex-wrap items-center gap-1 py-4 text-[11px] text-stone-500">
+        <nav className="flex flex-wrap items-center gap-1 py-4 text-[11.5px] text-stone-600">
           <Link href="/" className="transition hover:text-stone-700">
             首页
           </Link>
@@ -83,12 +83,12 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
                 真 3D
               </span>
             ) : null}
-            <span className="inline-flex items-center gap-1 text-[10px] text-stone-500">
-              <Clock size={10} /> 约 {spec.meta.minutes} 分钟
+            <span className="inline-flex items-center gap-1 text-[11px] text-stone-600">
+              <Clock size={11} /> 约 {spec.meta.minutes} 分钟
             </span>
             {chapter ? (
-              <span className="inline-flex items-center gap-1 text-[10px] text-stone-500">
-                <Layers3 size={10} /> {chapter.no} {chapter.title}
+              <span className="inline-flex items-center gap-1 text-[11px] text-stone-600">
+                <Layers3 size={11} /> {chapter.no} {chapter.title}
               </span>
             ) : null}
           </div>
@@ -97,14 +97,15 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
             {spec.meta.title}
           </h1>
           {spec.meta.subtitle ? (
-            <p className="mt-1.5 text-[12.5px] text-stone-600">{spec.meta.subtitle}</p>
+            /* 副标题对多数场景就是"核心公式 + 适用条件"，是标题之下最该被读的一行。
+               原来 12.5px 和正文一个样，完全没起到强调作用。 */
+            <p className="mt-2 font-medium leading-[1.7] text-stone-800 text-[13px] sm:text-[15px]">
+              {spec.meta.subtitle}
+            </p>
           ) : null}
 
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <ExportButton spec={spec} />
-            <span className="text-[10px] text-stone-500">
-              导出成单个 HTML 文件，双击即用，完全离线
-            </span>
           </div>
         </header>
 

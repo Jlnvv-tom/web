@@ -114,6 +114,8 @@ body {
   background: rgba(255, 255, 255, 0.9);
   color: rgb(68 64 60);
   white-space: nowrap;
+  /* 去掉双击缩放的那 300ms 延迟，按钮在手机上更"跟手" */
+  touch-action: manipulation;
 
   &:hover {
     color: #1c1917;

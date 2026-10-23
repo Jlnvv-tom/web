@@ -128,10 +128,12 @@ export function TelemetryPanel({ sceneId }: { sceneId?: string }) {
           </p>
 
           <div className="mt-3 flex flex-wrap gap-2">
-            <button onClick={onExportCsv} className="btn !px-2.5 !py-1 !text-[11px]" title="导出 CSV">
+            <button onClick={onExportCsv} className="btn !px-2.5 !py-1 !text-[11px]" title="导出 CSV"
+            aria-label="导出 CSV">
               <Download size={12} /> 导出 CSV
             </button>
-            <button onClick={onExportJson} className="btn !px-2.5 !py-1 !text-[11px]" title="导出 JSON">
+            <button onClick={onExportJson} className="btn !px-2.5 !py-1 !text-[11px]" title="导出 JSON"
+            aria-label="导出 JSON">
               <Download size={12} /> 导出 JSON
             </button>
             <button
