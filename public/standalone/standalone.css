@@ -58,6 +58,7 @@
     --container-lg: 32rem;
     --container-xl: 36rem;
     --container-3xl: 48rem;
+    --container-5xl: 64rem;
     --font-weight-normal: 400;
     --font-weight-medium: 500;
     --font-weight-semibold: 600;
@@ -73,6 +74,7 @@
     --radius-xl: 0.75rem;
     --radius-2xl: 1rem;
     --ease-out: cubic-bezier(0, 0, 0.2, 1);
+    --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
     --animate-spin: spin 1s linear infinite;
     --blur-xl: 24px;
     --blur-2xl: 40px;
@@ -289,6 +291,9 @@
   }
   .bottom-3 {
     bottom: calc(var(--spacing) * 3);
+  }
+  .left-1\/2 {
+    left: calc(1 / 2 * 100%);
   }
   .left-3 {
     left: calc(var(--spacing) * 3);
@@ -543,6 +548,9 @@
   .h-\[380px\] {
     height: 380px;
   }
+  .h-auto {
+    height: auto;
+  }
   .h-full {
     height: 100%;
   }
@@ -590,6 +598,12 @@
   }
   .max-w-3xl {
     max-width: var(--container-3xl);
+  }
+  .max-w-5xl {
+    max-width: var(--container-5xl);
+  }
+  .max-w-\[300px\] {
+    max-width: 300px;
   }
   .max-w-\[900px\] {
     max-width: 900px;
@@ -697,6 +711,9 @@
   }
   .gap-4 {
     gap: calc(var(--spacing) * 4);
+  }
+  .gap-10 {
+    gap: calc(var(--spacing) * 10);
   }
   :where(.space-y-1 > :not(:last-child)) {
     --tw-space-y-reverse: 0;
@@ -1479,6 +1496,9 @@
   .\!px-3 {
     padding-inline: calc(var(--spacing) * 3) !important;
   }
+  .\!px-3\.5 {
+    padding-inline: calc(var(--spacing) * 3.5) !important;
+  }
   .\!px-4 {
     padding-inline: calc(var(--spacing) * 4) !important;
   }
@@ -1575,6 +1595,9 @@
   .pt-6 {
     padding-top: calc(var(--spacing) * 6);
   }
+  .pt-12 {
+    padding-top: calc(var(--spacing) * 12);
+  }
   .pt-14 {
     padding-top: calc(var(--spacing) * 14);
   }
@@ -1610,6 +1633,9 @@
   }
   .\!text-\[11px\] {
     font-size: 11px !important;
+  }
+  .\!text-\[12px\] {
+    font-size: 12px !important;
   }
   .\!text-\[13px\] {
     font-size: 13px !important;
@@ -2055,6 +2081,10 @@
     transition-timing-function: var(--tw-ease, var(--default-transition-timing-function));
     transition-duration: var(--tw-duration, var(--default-transition-duration));
   }
+  .ease-in-out {
+    --tw-ease: var(--ease-in-out);
+    transition-timing-function: var(--ease-in-out);
+  }
   .ease-out {
     --tw-ease: var(--ease-out);
     transition-timing-function: var(--ease-out);
@@ -2125,6 +2155,14 @@
     @supports (color: color-mix(in lab, red, red)) {
       .hover\:border-white\/25:hover {
         border-color: color-mix(in oklab, var(--color-white) 25%, transparent);
+      }
+    }
+    .hover\:bg-cyan-600\/\[0\.05\]:hover {
+      background-color: color-mix(in srgb, oklch(60.9% 0.126 221.723) 5%, transparent);
+    }
+    @supports (color: color-mix(in lab, red, red)) {
+      .hover\:bg-cyan-600\/\[0\.05\]:hover {
+        background-color: color-mix(in oklab, var(--color-cyan-600) 5%, transparent);
       }
     }
     .hover\:bg-cyan-600\/\[0\.045\]:hover {
@@ -2215,9 +2253,6 @@
     .sm\:block {
       display: block;
     }
-    .sm\:flex {
-      display: flex;
-    }
     .sm\:hidden {
       display: none;
     }
@@ -2242,8 +2277,8 @@
     .sm\:px-6 {
       padding-inline: calc(var(--spacing) * 6);
     }
-    .sm\:pt-20 {
-      padding-top: calc(var(--spacing) * 20);
+    .sm\:pt-16 {
+      padding-top: calc(var(--spacing) * 16);
     }
     .sm\:text-\[14px\] {
       font-size: 14px;
@@ -2262,8 +2297,14 @@
     .md\:flex {
       display: flex;
     }
+    .md\:hidden {
+      display: none;
+    }
   }
   @media (width >= 64rem) {
+    .lg\:mx-0 {
+      margin-inline: 0px;
+    }
     .lg\:h-\[540px\] {
       height: 540px;
     }
@@ -2273,8 +2314,20 @@
     .lg\:grid-cols-3 {
       grid-template-columns: repeat(3, minmax(0, 1fr));
     }
+    .lg\:grid-cols-\[1\.15fr_0\.85fr\] {
+      grid-template-columns: 1.15fr 0.85fr;
+    }
     .lg\:grid-cols-\[minmax\(0\,1fr\)_312px\] {
       grid-template-columns: minmax(0,1fr) 312px;
+    }
+    .lg\:justify-start {
+      justify-content: flex-start;
+    }
+    .lg\:gap-6 {
+      gap: calc(var(--spacing) * 6);
+    }
+    .lg\:text-left {
+      text-align: left;
     }
   }
 }

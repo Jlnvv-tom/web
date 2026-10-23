@@ -1,9 +1,14 @@
 import Link from 'next/link';
-import { Boxes, BookOpen, Layers } from 'lucide-react';
-import { STATS } from '@/content/chapters';
+import { ArrowRight, Boxes } from 'lucide-react';
 import { SCENES } from '@/content/scenes';
 
 export function SiteHeader() {
+  const nav = [
+    { href: '/chapters/g2', label: '高中' },
+    { href: '/chapters/j8a', label: '初中' },
+    { href: '/search', label: '搜索' },
+  ];
+
   return (
     <header className="sticky top-0 z-40 border-b border-stone-900/10 bg-[#f6f3ee]/85 backdrop-blur-xl">
       <div className="mx-auto flex h-14 max-w-[1400px] items-center gap-4 px-4 sm:px-6">
@@ -20,28 +25,32 @@ export function SiteHeader() {
         </Link>
 
         <nav className="ml-2 hidden items-center gap-1 md:flex">
-          <Link href="/chapters/g2" className="rounded-lg px-2.5 py-1.5 text-[12px] text-stone-600 transition hover:bg-stone-900/5 hover:text-stone-900">
-            高中
-          </Link>
-          <Link href="/chapters/j8a" className="rounded-lg px-2.5 py-1.5 text-[12px] text-stone-600 transition hover:bg-stone-900/5 hover:text-stone-900">
-            初中
-          </Link>
-          <Link href="/search" className="rounded-lg px-2.5 py-1.5 text-[12px] text-stone-600 transition hover:bg-stone-900/5 hover:text-stone-900">
-            搜索
-          </Link>
+          {nav.map((n) => (
+            <Link
+              key={n.href}
+              href={n.href}
+              className="rounded-lg px-2.5 py-1.5 text-[12px] text-stone-600 transition hover:bg-stone-900/5 hover:text-stone-900"
+            >
+              {n.label}
+            </Link>
+          ))}
         </nav>
 
-        <div className="ml-auto flex items-center gap-3 text-[10.5px] text-stone-600">
-          <span className="hidden items-center gap-1 sm:flex">
-            <Layers size={11} /> {STATS.chapters} 章
-          </span>
-          <span className="hidden items-center gap-1 sm:flex">
-            <BookOpen size={11} /> {STATS.points} 知识点
-          </span>
-          <span className="flex items-center gap-1 text-cyan-700/90">
-            <Boxes size={11} /> {SCENES.length} 个 3D 场景
-          </span>
-        </div>
+        {/* 右侧只放一个主 CTA。参照 Sentry：头部不堆统计数字，
+            也不要并排放三个功能相同的入口。 */}
+        <Link
+          href={`/topics/${SCENES[0]!.meta.id}`}
+          className="btn btn-primary ml-auto !px-3.5 !py-1.5 !text-[12px]"
+        >
+          <Boxes size={13} />
+          开始体验
+          <ArrowRight size={13} />
+        </Link>
+
+        {/* 窄屏：导航收成一个搜索入口，避免和主 CTA 抢位 */}
+        <Link href="/search" className="btn !px-3 !py-1.5 !text-[12px] md:hidden">
+          搜索
+        </Link>
       </div>
     </header>
   );

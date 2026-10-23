@@ -4,7 +4,7 @@ import type { SceneSummary } from '@/content/scenes';
 import { DIFFICULTY_LABEL, STAGE_LABEL } from '@/engine/spec';
 import { findChapter } from '@/content/chapters';
 
-export function SceneCard({ s, index }: { s: SceneSummary; index?: number }) {
+export function SceneCard({ s }: { s: SceneSummary }) {
   const chapter = findChapter(s.chapterId);
 
   return (
@@ -18,9 +18,6 @@ export function SceneCard({ s, index }: { s: SceneSummary; index?: number }) {
         <span className="chip !px-2 !py-[2px] !text-[9.5px]">{STAGE_LABEL[s.stage]}</span>
         <span className="rounded-full border border-stone-900/14 px-2 py-[2px] text-[9.5px] text-stone-600">
           {DIFFICULTY_LABEL[s.difficulty]}
-        </span>
-        <span className="ml-auto font-mono text-[10px] text-stone-500">
-          {index != null ? String(index + 1).padStart(2, '0') : ''}
         </span>
       </div>
 
