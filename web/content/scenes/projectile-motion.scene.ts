@@ -127,19 +127,19 @@ export const projectileMotionScene: SceneSpec = {
     {
       at: 7,
       text: '现在盯住两条分量箭头：绿色的 v 一直在缩短，但青色的 vₓ 长度几乎不变——水平方向没有受任何力。',
-      camera: { position: [22, 10, 30], target: [18, 6, 0] },
+      camera: { position: [22, 10, 30], target: [20.4, 4.3, 0] },
       highlight: ['vx', 'vy', 'v'],
     },
     {
       at: 15,
       text: '到达最高点时，竖直分量 v_y 变为 0，可是水平分量还在！所以球不会停在最高点，它会继续往前走。',
-      camera: { position: [2, 12, 30], target: [16, 8, 0] },
+      camera: { position: [2, 12, 30], target: [20.4, 4.3, 0] },
       highlight: ['vy', 'vx'],
     },
     {
       at: 23,
       text: '注意上升和下落是对称的：同一高度经过两次，用时相同、速率相同、方向相反。',
-      camera: { position: [20, 10, 30], target: [20, 6, 0] },
+      camera: { position: [20, 10, 30], target: [20.4, 4.3, 0] },
       highlight: ['trail'],
     },
     {
@@ -152,7 +152,7 @@ export const projectileMotionScene: SceneSpec = {
       at: 39,
       text: '换个星球呢？把 g 改成月球的 1.6：同样的初速度，射程直接变成 6 倍多。',
       params: { g: 1.6 },
-      camera: { position: [22, 20, 58], target: [26, 8, 0] },
+      camera: { position: [21.7, 16.9, 46.4], target: [20.4, 4.3, 0] },
       highlight: ['trail'],
     },
     {

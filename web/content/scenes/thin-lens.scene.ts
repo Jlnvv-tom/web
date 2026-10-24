@@ -22,7 +22,7 @@ export const thinLensScene: SceneSpec = {
     pitch: '拖动物距，看着像点在光路上跑——比背「一倍焦距分虚实」有用得多',
   },
 
-  camera: { position: [2.6, 4.6, 8.2], target: [0.2, 0.3, 0], fov: 44 },
+  camera: { position: [2.0, 3.7, 7.1], target: [0, -0.3, 0], fov: 44 },
 
   world: { showGrid: false, showAxis: false, gridSize: 16, gridDivisions: 16 },
 
@@ -100,7 +100,7 @@ export const thinLensScene: SceneSpec = {
     {
       at: 0,
       text: '凸透镜成像不用背表格。只要画对三条特殊光线，像点自然就出来了：平行主光轴的过焦点，过光心的不偏折，过焦点的折射后平行。',
-      camera: { position: [2.6, 4.6, 8.2], target: [0.2, 0.3, 0] },
+      camera: { position: [2.0, 3.7, 7.1], target: [0, -0.3, 0] },
       highlight: ['ray0', 'ray1', 'ray2'],
     },
     {
@@ -118,7 +118,7 @@ export const thinLensScene: SceneSpec = {
       at: 24,
       text: '继续靠近到 15 cm（f < u < 2f）：像跑到 2f 以外，变成倒立、放大的实像。投影仪就是这个区间。',
       params: { u: 15 },
-      camera: { position: [3.4, 3.8, 7.2], target: [0.9, 0.2, 0] },
+      camera: { position: [2.3, 3.0, 6.7], target: [0, -0.3, 0] },
       highlight: ['image'],
     },
     {

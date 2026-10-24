@@ -34,7 +34,7 @@ export const leverScene: SceneSpec = {
     pitch: '让杠杆真的翘起来，看斜的杆和水平的力臂为什么不等长',
   },
 
-  camera: { position: [0.03, 0.26, 0.86], target: [0, -0.08, 0], fov: 45 },
+  camera: { position: [0.03, 0.26, 0.86], target: [-0.15, -0.12, 0], fov: 45 },
 
   // 装饰层：拖钩码质量时，木杆挤压一下（杆是主角，而不是某个钩码）
   decor: { subject: 'bar', squash: 0.05 },
@@ -216,7 +216,7 @@ export const leverScene: SceneSpec = {
     {
       at: 0,
       text: '一根刚性杆绕支点 O 转动。左端挂 m₁（绿色），右端挂 m₂（橙色），两个力都竖直向下。当前 2 kg×60 cm = 120，8 kg×30 cm = 240，**右边力矩大一倍**，所以杠杆朝右下垂并来回摆。',
-      camera: { position: [0.03, 0.26, 0.86], target: [0, -0.08, 0] },
+      camera: { position: [0.03, 0.26, 0.86], target: [-0.15, -0.12, 0] },
       highlight: ['bar', 'eff-end', 'res-end', 'pivot-pt'],
     },
     {
