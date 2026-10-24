@@ -5,6 +5,7 @@ import { useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { needsTransmission, resolveMaterial, type MaterialKind } from '@/engine/materials';
+import { STAGE_BACKDROP } from '@/engine/palette';
 import { getQuality } from './quality';
 import { textureFor, tiledTexture } from './textures';
 
@@ -238,5 +239,5 @@ export const STAGE_DEFAULTS = {
    * 雾必须用同一个值 —— 雾色与背景色走同一条 tone mapping，
    * 远处物体"淡出"后才能刚好融进背景，不会出现一圈比背景更亮的雾。
    */
-  backdrop: '#948B79',
+  backdrop: STAGE_BACKDROP,
 } as const;

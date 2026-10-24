@@ -11,6 +11,8 @@ import { waveScene } from './wave.scene';
 import { inductionScene } from './induction.scene';
 import { buoyancyScene } from './buoyancy.scene';
 import { leverScene } from './lever.scene';
+import { soundPropagationScene } from './sound-propagation.scene';
+import { emInductionScene } from './em-induction.scene';
 
 /**
  * 场景注册表
@@ -31,6 +33,8 @@ export const SCENES: SceneSpec[] = [
   inductionScene,
   buoyancyScene,
   leverScene,
+  soundPropagationScene,
+  emInductionScene,
 ];
 
 export const SCENE_MAP = new Map(SCENES.map((s) => [s.meta.id, s]));

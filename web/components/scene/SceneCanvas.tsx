@@ -6,6 +6,7 @@ import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import type { SceneSpec } from '@/engine/spec';
 import type { PlayerStoreApi } from '@/engine/store';
+import { CANVAS_BACKDROP as CANVAS_BACKDROP_LIGHT } from '@/engine/palette';
 import type { StateRef } from './objects';
 import { ObjectView } from './objects';
 import { SceneRuntime } from './SceneRuntime';
@@ -14,9 +15,14 @@ import { STAGE_DEFAULTS, StageBackdrop, StageLights, TableTop } from './Stage';
 
 /** 非展台场景的画布底板：比页面（#f6f3ee）深一档，比展台背景再深一档 */
 /** 非展台场景的画布底板。
- *  比页面（#f6f3ee，L≈0.93）深三档：浅色页面配一块中间调"绘图板"，
- *  3D 内容才有地方落下阴影和高光。全白的画布上任何物体都是飘着的。 */
-const CANVAS_BACKDROP = '#8E8574';
+ *
+ *  近白，不是中间调。实测结论（完整推导见 engine/palette.ts 顶部）：
+ *  中间调底板 #8E8574 上要达到 4.5:1，前景相对亮度必须 ≤0.014（近纯黑），
+ *  所有 700 档语义色在它上面只有 1.35–2.09:1 —— 要么违反对比度，
+ *  要么把红/青/绿全压成近黑、毁掉色相编码。中间调是对比度最差的底板：
+ *  对亮色不够暗，对暗色不够亮。
+ *  换成近白后同批颜色 4.45–7.19:1，全部达标。 */
+const CANVAS_BACKDROP = CANVAS_BACKDROP_LIGHT;
 
 /* ============================================================
    程序化环境反射（替代 HDRI 文件，保证零外部资源）

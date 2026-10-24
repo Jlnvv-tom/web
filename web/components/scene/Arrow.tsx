@@ -4,6 +4,7 @@ import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { Vec3 } from '@/engine/vec';
+import { ink } from '@/engine/palette';
 
 const UP = new THREE.Vector3(0, 1, 0);
 
@@ -17,7 +18,8 @@ export type Vec3Like = readonly [number, number, number] | Vec3;
 export function Arrow({
   getOrigin,
   getVector,
-  color = '#22d3ee',
+  // 过 ink()：场景写的是深色主题语义色，渲染层负责适配当前底板
+  color = ink(undefined, '#22d3ee'),
   radius = 0.022,
   opacity = 1,
   fixedLength,
@@ -122,7 +124,7 @@ export function Arrow({
 export function StaticArrow({
   from,
   to,
-  color = '#94a3b8',
+  color = ink(undefined, '#94a3b8'),
   radius = 0.018,
   opacity = 1,
 }: {

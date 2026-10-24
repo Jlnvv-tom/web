@@ -5,6 +5,7 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { SceneSpec, SceneState } from '@/engine/spec';
 import type { Vec3 } from '@/engine/vec';
+import { ink } from '@/engine/palette';
 import type { StateRef } from './objects';
 
 /** 复用的投影向量，避免每帧分配 */
@@ -42,7 +43,8 @@ export function deriveLabels(spec: SceneSpec): SceneLabel[] {
       out.push({
         id: `vec-${o.id}`,
         text: o.label,
-        color: o.color ?? '#0e7490',
+        // 与箭头同色：标签和它标注的矢量必须是同一个色系，否则学生对不上
+        color: ink(o.color, '#0e7490'),
         getPoint: (s) => {
           const origin = s.points[o.origin ?? 'pos'] ?? [0, 0, 0];
           const raw = s.vectors[o.bind] ?? [0, 0, 0];
@@ -56,7 +58,7 @@ export function deriveLabels(spec: SceneSpec): SceneLabel[] {
       out.push({
         id: `txt-${o.id}`,
         text: o.text,
-        color: o.color ?? '#57534e',
+        color: ink(o.color, '#57534e'),
         size: o.size,
         getPoint: typeof pos === 'string' ? (s) => s.points[pos] : () => pos,
       });
