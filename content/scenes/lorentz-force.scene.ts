@@ -20,7 +20,7 @@ export const lorentzForceScene: SceneSpec = {
     pitch: '把 F 垂直于 v-B 平面这件事，转着看一遍就再也忘不掉',
   },
 
-  camera: { position: [8.6, 6.8, 11.2], target: [0, 1.0, 4.6], fov: 45 },
+  camera: { position: [7.6, 6.1, 10.4], target: [0, 0, 5], fov: 45 },
 
   world: { gridSize: 26, gridDivisions: 26, showGrid: true, showAxis: false },
 
@@ -189,7 +189,7 @@ export const lorentzForceScene: SceneSpec = {
     {
       at: 0,
       text: '一个带正电的粒子以速度 v 射入匀强磁场 B。蓝色箭头表示磁场方向，竖直向上。',
-      camera: { position: [8.6, 6.8, 11.2], target: [0, 1.0, 4.6] },
+      camera: { position: [7.6, 6.1, 10.4], target: [0, 0, 5] },
       highlight: ['B-field'],
     },
     {
@@ -200,7 +200,7 @@ export const lorentzForceScene: SceneSpec = {
     {
       at: 13,
       text: '现在自己拖动视角绕一圈——从任何角度看，F 始终垂直于 v，永远指向同一点。这就是"圆周运动"的几何本质。',
-      camera: { position: [-12, 7.5, 12], target: [0, 1.6, 4.6] },
+      camera: { position: [-7.0, 5.0, 8.7], target: [0, 0, 5] },
       highlight: ['F-vec', 'ideal-circle'],
     },
     {
@@ -219,7 +219,7 @@ export const lorentzForceScene: SceneSpec = {
       at: 37,
       text: '但如果 v 不垂直于 B 呢？把 θ 调到 45°：平行于 B 的那份速度不受力，轨迹被"拉"成了螺旋线。',
       params: { theta: 45 },
-      camera: { position: [11, 8, 13], target: [0, 2, 4] },
+      camera: { position: [7.6, 5.9, 10.0], target: [0, 0, 5] },
       highlight: ['trail'],
     },
     {

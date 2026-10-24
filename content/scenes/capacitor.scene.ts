@@ -25,7 +25,7 @@ export const capacitorScene: SceneSpec = {
   },
 
   // 世界尺度是米：极板 30 cm × 30 cm，相机距离约 0.75 m
-  camera: { position: [0.44, 0.32, 0.56], target: [0, 0, 0], fov: 45 },
+  camera: { position: [0.39, 0.29, 0.5], target: [0, 0, 0], fov: 45 },
 
   world: { showGrid: false, showAxis: false },
 
@@ -203,7 +203,7 @@ export const capacitorScene: SceneSpec = {
     {
       at: 0,
       text: '两块平行金属板，上面接正、下面接负。中间那块黄色的带电粒子正沿着中线飞进来。',
-      camera: { position: [0.44, 0.32, 0.56], target: [0, 0, 0] },
+      camera: { position: [0.39, 0.29, 0.5], target: [0, 0, 0] },
       highlight: ['plate-pos', 'plate-neg', 'particle'],
     },
     {

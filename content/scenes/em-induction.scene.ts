@@ -32,7 +32,7 @@ export const emInductionScene: SceneSpec = {
     pitch: '把"切割磁感线"这个动作，变成三根能转着看的正交矢量',
   },
 
-  camera: { position: [2.9, 2.1, 3.3], target: [1.5, 0.1, 0], fov: 45 },
+  camera: { position: [2.9, 2.1, 3.3], target: [2.05, 0.12, 0], fov: 45 },
 
   // 参数驱动的静态场景：棒的位置由滑块设定，不模拟动力学。
   // 展台：装置站在木桌上。没有桌子时整套设备漂在近白画布上，

@@ -216,7 +216,7 @@ export const shmScene: SceneSpec = {
     {
       at: 22,
       text: '转一下视角：参考圆是竖着放的（在水平面内），投影点在振动方向上来回。圆上那点转多快，单摆就摆多快。',
-      camera: { position: [1.0, 2.0, 1.7], target: [0, 0.45, 0] },
+      camera: { position: [0.78, 1.66, 1.33], target: [0, 0.45, 0] },
       highlight: ['ref-circle', 'ref-radius', 'projection'],
     },
     {
