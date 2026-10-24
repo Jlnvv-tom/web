@@ -56,6 +56,10 @@ READ = """() => [...document.querySelectorAll('.readout-row')].map(r => ({
 }))"""
 
 # 期望值全部由手算/独立推得，不是从前端表达式反推
+#
+# 2026-10-24：02-sound-propagation / 05-electromagnetic-induction 两个 CASE
+# 已随页面迁入主产品（engine/solvers/acoustics.test.ts 与 rodInduction.test.ts，
+# 期望值原样保留）。本脚本只剩未迁移的 4 页；全部迁完后本脚本退役。
 CASES = [
     {
         "file": "01-light-refraction.html",
@@ -68,17 +72,6 @@ CASES = [
             "正弦比": (1.33, 1.33),
         },
         "const_idx": 4,  # 正弦比
-    },
-    {
-        "file": "02-sound-propagation.html",
-        "param": "t", "v1": 0.4, "v2": 1.2,
-        "expect": {
-            "传播时间": (0.40, 1.20),
-            "波前半径": (136.0, 408.0),
-            "空气中的声速": (340.0, 340.0),
-            "相对振幅": (1.67, 1.67),  # 1/min(r,0.6)，r>0.6 后恒为 1/0.6
-        },
-        "const_idx": 2,
     },
     {
         "file": "03-magnetic-field-lines.html",
@@ -100,18 +93,6 @@ CASES = [
             "管内磁感应强度": (2.51, 2.51),     # μ0·n·I = 1.2566e-6·1000·2 = 2.513 mT
         },
         "const_idx": 2,
-    },
-    {
-        "file": "05-electromagnetic-induction.html",
-        "param": "x", "v1": 1.2, "v2": 3.5,
-        "expect": {
-            "棒的位置": (1.20, 3.50),
-            "是否在磁场中": (1.0, 0.0),          # 离开磁场 → 0
-            "感应电动势": (0.300, 0.000),        # BLv = 0.5·0.4·1.5
-            "感应电流": (150.0, 0.0),            # mA
-            "磁场中的电流": (150.0, 150.0),       # I₀ = BLv/R，与位置无关
-        },
-        "const_idx": 4,
     },
     {
         "file": "06-molecular-motion.html",

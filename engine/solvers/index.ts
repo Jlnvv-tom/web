@@ -12,6 +12,8 @@ import { waveSolver } from './wave';
 import { inductionSolver } from './induction';
 import { buoyancySolver } from './buoyancy';
 import { leverSolver } from './lever';
+import { acousticsSolver } from './acoustics';
+import { rodInductionSolver } from './rodInduction';
 
 const REGISTRY: Partial<Record<SolverKind, SolverModule>> = {
   projectile: projectileSolver,
@@ -26,6 +28,8 @@ const REGISTRY: Partial<Record<SolverKind, SolverModule>> = {
   induction: inductionSolver,
   buoyancy: buoyancySolver,
   lever: leverSolver,
+  acoustics: acousticsSolver,
+  rodInduction: rodInductionSolver,
 };
 
 export const SOLVER_KINDS = Object.keys(REGISTRY) as SolverKind[];
@@ -68,5 +72,7 @@ export {
   inductionSolver,
   buoyancySolver,
   leverSolver,
+  acousticsSolver,
+  rodInductionSolver,
 };
 export type { SolverModule, SolverCtx };

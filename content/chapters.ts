@@ -55,7 +55,7 @@ export const BOOKS: Book[] = [
         no: '第二章',
         title: '声现象',
         points: [
-          { id: 'j8a-2-1', title: '声音的产生与传播' },
+          { id: 'j8a-2-1', title: '声音的产生与传播', sceneId: 'sound-propagation', needs3d: true },
           { id: 'j8a-2-2', title: '声音的特性 · 音调响度音色' },
           { id: 'j8a-2-3', title: '声的利用与噪声控制' },
         ],
@@ -220,7 +220,7 @@ export const BOOKS: Book[] = [
           { id: 'j9-4-1', title: '磁现象 · 磁场', needs3d: true },
           { id: 'j9-4-2', title: '电生磁 · 通电螺线管', needs3d: true },
           { id: 'j9-4-3', title: '电磁铁 · 电磁继电器' },
-          { id: 'j9-4-4', title: '磁生电 · 发电机', needs3d: true },
+          { id: 'j9-4-4', title: '磁生电 · 发电机', sceneId: 'em-induction', needs3d: true },
         ],
       },
     ],

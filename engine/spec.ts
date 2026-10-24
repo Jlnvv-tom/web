@@ -370,7 +370,9 @@ export type SolverKind =
   | 'orbit'
   | 'induction'
   | 'buoyancy'
-  | 'lever';
+  | 'lever'
+  | 'acoustics'
+  | 'rodInduction';
 
 /**
  * 展台（M3 · 见 docs/m3-plan.md §4）
@@ -569,6 +571,8 @@ export const zSceneSpec = z.object({
       'induction',
       'buoyancy',
       'lever',
+      'acoustics',
+      'rodInduction',
     ]),
     options: z.record(z.unknown()).optional(),
   }),

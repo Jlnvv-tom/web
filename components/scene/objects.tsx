@@ -8,6 +8,7 @@ import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.j
 import type { ObjectDef, SceneState } from '@/engine/spec';
 import type { Vec3 } from '@/engine/vec';
 import { Arrow, StaticArrow } from './Arrow';
+import { ink } from '@/engine/palette';
 import { needsTransmission, resolveMaterial } from '@/engine/materials';
 import { getQuality } from './quality';
 import { textureFor, tiledTexture } from './textures';
@@ -48,7 +49,7 @@ const toV3 = (v: readonly [number, number, number]) => new THREE.Vector3(v[0], v
 
 function DynLine({
   getPoints,
-  color = '#22d3ee',
+  color = ink(undefined, '#22d3ee'),
   width = 2,
   dashed = false,
   opacity = 1,
@@ -145,7 +146,7 @@ function MultiPolyline({
           <Line
             key={i}
             points={pts}
-            color={def.color ?? '#38bdf8'}
+            color={ink(def.color, '#38bdf8')}
             lineWidth={def.width ?? 1.2}
             dashed={def.dashed}
             dashSize={0.24}
@@ -237,11 +238,14 @@ function GridObject({ def }: { def: Extract<ObjectDef, { type: 'grid' }> }) {
   const geom = useMemo(() => {
     const [w, h] = def.size;
     const div = def.divisions;
+    // GridHelper 的材质是 { vertexColors: true, toneMapped: false } —— 完全不透明。
+    // 场景里的深青网格色是为深色底选的，在近白底上会变成满不透明度的深色网格，
+    // 所以必须过 structure 档（3:1）而不是原样使用。
     return new THREE.GridHelper(
       Math.max(w, h),
       div,
-      new THREE.Color(def.color ?? '#1e5a72'),
-      new THREE.Color(def.color ?? '#10303e')
+      new THREE.Color(ink(def.color, '#1e5a72', { role: 'structure' })),
+      new THREE.Color(ink(def.color, '#10303e', { role: 'structure' }))
     );
   }, [def.size, def.divisions, def.color]);
 
@@ -262,7 +266,7 @@ function GridObject({ def }: { def: Extract<ObjectDef, { type: 'grid' }> }) {
 function GridPlane({ def }: { def: Extract<ObjectDef, { type: 'grid' }> }) {
   const [w, h] = def.size;
   const div = def.divisions;
-  const color = def.color ?? '#1e5a72';
+  const color = ink(def.color, '#1e5a72', { role: 'structure' });
   const op = def.opacity ?? 0.35;
 
   const segments = useMemo(() => {
@@ -308,7 +312,7 @@ function FieldArrows({
 }) {
   const [cx, cy, cz] = def.count;
   const s = def.spacing;
-  const color = def.color ?? '#38bdf8';
+  const color = ink(def.color, '#38bdf8');
   const op = def.opacity ?? 0.55;
   const group = useRef<THREE.Group>(null);
 
@@ -356,9 +360,10 @@ function Axis({ def }: { def: Extract<ObjectDef, { type: 'axis' }> }) {
   const L = def.length;
   const axes = useMemo(
     () => [
-      { p: [[-L, 0, 0], [L, 0, 0]] as Vec3[], c: '#f87171', n: 'x' },
-      { p: [[0, -L * 0.35, 0], [0, L, 0]] as Vec3[], c: '#4ade80', n: 'y' },
-      { p: [[0, 0, -L], [0, 0, L]] as Vec3[], c: '#60a5fa', n: 'z' },
+      // 坐标轴是标准的 RGB 语义色（x 红 / y 绿 / z 蓝），过 ink() 保色相、只压明度
+      { p: [[-L, 0, 0], [L, 0, 0]] as Vec3[], c: ink(undefined, '#f87171'), n: 'x' },
+      { p: [[0, -L * 0.35, 0], [0, L, 0]] as Vec3[], c: ink(undefined, '#4ade80'), n: 'y' },
+      { p: [[0, 0, -L], [0, 0, L]] as Vec3[], c: ink(undefined, '#60a5fa'), n: 'z' },
     ],
     [L]
   );
@@ -401,7 +406,7 @@ function PlaneObject({ def, stateRef }: { def: Extract<ObjectDef, { type: 'plane
       </mesh>
       {def.outline !== false && (
         <lineSegments geometry={edges}>
-          <lineBasicMaterial color={def.color ?? '#94a3b8'} transparent opacity={0.6} />
+          <lineBasicMaterial color={ink(def.color, '#94a3b8', { role: 'structure' })} transparent opacity={0.6} />
         </lineSegments>
       )}
     </group>
@@ -440,12 +445,12 @@ function DiscObject({ def }: { def: Extract<ObjectDef, { type: 'disc' }> }) {
       {def.ring ? (
         <mesh>
           <ringGeometry args={[def.radius * 0.995, def.radius, 64]} />
-          <meshBasicMaterial color={def.color ?? '#22d3ee'} transparent opacity={def.opacity ?? 0.5} side={THREE.DoubleSide} />
+          <meshBasicMaterial color={ink(def.color, '#22d3ee')} transparent opacity={def.opacity ?? 0.5} side={THREE.DoubleSide} />
         </mesh>
       ) : (
         <mesh>
           <circleGeometry args={[def.radius, 64]} />
-          <meshBasicMaterial color={def.color ?? '#0e2a3a'} transparent opacity={def.opacity ?? 0.25} side={THREE.DoubleSide} />
+          <meshBasicMaterial color={ink(def.color, '#0e2a3a', { role: 'structure' })} transparent opacity={def.opacity ?? 0.25} side={THREE.DoubleSide} />
         </mesh>
       )}
     </group>
@@ -467,7 +472,7 @@ function ArrowLineObject({
       const a = def.from as Vec3;
       const b = def.to as Vec3;
       return [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
-    }} color={def.color} radius={(def.width ?? 1) * 0.024} />;
+    }} color={ink(def.color, '#22d3ee')} radius={(def.width ?? 1) * 0.024} />;
   }
   return (
     <Arrow
@@ -477,7 +482,7 @@ function ArrowLineObject({
         const b = resolvePoint(stateRef.current, def.to as string | Vec3);
         return [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
       }}
-      color={def.color}
+      color={ink(def.color, '#22d3ee')}
       radius={(def.width ?? 1) * 0.024}
     />
   );
@@ -517,7 +522,7 @@ function renderObject(def: ObjectDef, stateRef: StateRef) {
       return (
         <DynLine
           getPoints={() => stateRef.current.lines[def.bind]}
-          color={def.color ?? '#22d3ee'}
+          color={ink(def.color, '#22d3ee')}
           width={def.width ?? 2}
           dashed={def.dashed}
           opacity={0.9}
@@ -528,7 +533,7 @@ function renderObject(def: ObjectDef, stateRef: StateRef) {
       return def.bind ? (
         <DynLine
           getPoints={() => stateRef.current.lines[def.bind!]}
-          color={def.color ?? '#94a3b8'}
+          color={ink(def.color, '#94a3b8')}
           width={def.width ?? 1.6}
           dashed={def.dashed}
           opacity={0.95}
@@ -549,7 +554,7 @@ function renderObject(def: ObjectDef, stateRef: StateRef) {
             const k = def.scale ?? 1;
             return [v[0] * k, v[1] * k, v[2] * k];
           }}
-          color={def.color}
+          color={ink(def.color, '#22d3ee')}
           fixedLength={def.fixed ? 1.6 : undefined}
           maxLength={def.maxLength}
           radius={def.radius}
@@ -638,12 +643,14 @@ function SectorObject({
   return (
     <mesh geometry={geom} frustumCulled={false}>
       <meshBasicMaterial
-        color={def.color ?? '#22d3ee'}
+        color={ink(def.color, '#22d3ee')}
         transparent
         opacity={def.opacity ?? 0.22}
         side={THREE.DoubleSide}
         depthWrite={false}
-        blending={THREE.AdditiveBlending}
+        // 原来是叠加混合（深色底上当「发光」用）。白底上叠加会让它直接消失 ——
+        // 开普勒第二定律的面积扇是核心图元，不能看不见。
+        blending={THREE.NormalBlending}
       />
     </mesh>
   );
@@ -754,7 +761,7 @@ function PolylineStatic({ def }: { def: Extract<ObjectDef, { type: 'polyline' }>
     <group>
       <Line
         points={pts}
-        color={def.color ?? '#94a3b8'}
+        color={ink(def.color, '#94a3b8')}
         lineWidth={def.width ?? 1.6}
         dashed={def.dashed}
         dashSize={0.12}
@@ -763,7 +770,7 @@ function PolylineStatic({ def }: { def: Extract<ObjectDef, { type: 'polyline' }>
         opacity={0.95}
       />
       {arrows.map((a, i) => (
-        <StaticArrow key={i} from={a.from} to={a.to} color={def.color ?? '#94a3b8'} radius={0.022} />
+        <StaticArrow key={i} from={a.from} to={a.to} color={ink(def.color, '#94a3b8')} radius={0.022} />
       ))}
     </group>
   );
