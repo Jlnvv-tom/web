@@ -12,7 +12,7 @@ import type * as THREE from 'three';
 import type { IntroState } from '@/engine/intro';
 import { INTRO_IDLE } from '@/engine/intro';
 
-export { INTRO_IDLE, advanceIntro, introFx, makeIntro } from '@/engine/intro';
+export { INTRO_IDLE, INTRO_DEFAULT_DURATION, advanceIntro, introFx, makeIntro } from '@/engine/intro';
 export type { IntroFx, IntroState } from '@/engine/intro';
 
 export const IntroContext = createContext<{ current: IntroState }>({ current: INTRO_IDLE });

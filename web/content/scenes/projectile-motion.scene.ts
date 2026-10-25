@@ -77,11 +77,13 @@ export const projectileMotionScene: SceneSpec = {
   objects: [
     { type: 'grid', id: 'ground', size: [100, 40], divisions: 40, plane: 'xz', color: '#1b4459', opacity: 0.3 },
 
-    { type: 'polyline', id: 'ideal-path', bind: 'ghost', color: '#2a4a5c', width: 1.2, dashed: true },
-    { type: 'trail', id: 'trail', bind: 'trail', color: '#22d3ee', width: 3 },
+    { type: 'polyline', id: 'ideal-path', bind: 'ghost', color: '#2a4a5c', width: 2, dashed: true },
+    { type: 'trail', id: 'trail', bind: 'trail', color: '#22d3ee', width: 6 },
+    { type: 'trail', id: 'trail-halo', bind: 'trail', color: '#22d3ee', width: 14, opacity: 0.16 },
     { type: 'polyline', id: 'height-line', bind: 'height', color: '#475569', width: 1.2, dashed: true },
 
-    { type: 'particle', id: 'ball', bind: 'pos', radius: 0.5, color: '#ff8a3d', glow: true },
+    { type: 'particle', id: 'ball', bind: 'pos', radius: 0.85, color: '#ff8a3d', glow: true },
+    { type: 'disc', id: 'land-ring', position: 'land', radius: 1.5, ring: true, color: '#22d3ee', opacity: 0.55 },
 
     { type: 'vector', id: 'v', bind: 'v', color: '#4ade80', scale: 0.26, maxLength: 9, label: 'v' },
     { type: 'vector', id: 'vx', bind: 'vx', color: '#22d3ee', scale: 0.26, maxLength: 9, label: 'vₓ' },

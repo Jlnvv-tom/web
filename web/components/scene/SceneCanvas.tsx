@@ -12,7 +12,14 @@ import { ObjectView } from './objects';
 import { SceneRuntime } from './SceneRuntime';
 import { LabelProjector, deriveLabels } from './labels';
 import { STAGE_DEFAULTS, StageBackdrop, StageLights, TableTop } from './Stage';
-import { IntroContext, advanceIntro, makeIntro, useIntro, type IntroState } from './intro';
+import {
+  IntroContext,
+  INTRO_DEFAULT_DURATION,
+  advanceIntro,
+  makeIntro,
+  useIntro,
+  type IntroState,
+} from './intro';
 
 /** 非展台场景的画布底板：比页面（#f6f3ee）深一档，比展台背景再深一档 */
 /** 非展台场景的画布底板。
@@ -254,6 +261,7 @@ function HighlightGroup({
   onClick,
   pulse,
   squash = 0.07,
+  dimGrace = 0,
 }: {
   highlighted: boolean;
   active: boolean;
@@ -263,6 +271,8 @@ function HighlightGroup({
   pulse?: () => number;
   /** 挤压幅度 */
   squash?: number;
+  /** 压暗宽限（秒）。Infinity = 跟随 intro 状态；0 = 即时压暗（旧路径） */
+  dimGrace?: number;
 }) {
   const ref = useRef<THREE.Group>(null);
   const gl = useThree((s) => s.gl);
@@ -324,10 +334,16 @@ function HighlightGroup({
     const L = lift.current;
     g.scale.set(L * (1 - q * 0.45), L * (1 + q), L * (1 - q * 0.45));
 
-    // 演出结束后的压暗淡入（任务 4.5）；ramp 完成后本块零开销。
-    // kill-switch 必须等演出结束才生效：store 初始 stepIndex=-1，挂载头几帧
+    // 宽限窗倒计时（仅无 intro 场景走这条；intro 场景由 intro.current.active 驱动）
+    if (graceLeft.current !== Infinity && graceLeft.current > 0) {
+      graceLeft.current = Math.max(0, graceLeft.current - d);
+    }
+    const inGrace = intro.current.active || graceLeft.current > 0;
+
+    // 宽限结束后的压暗淡入（任务 4.5）；ramp 完成后本块零开销。
+    // kill-switch 必须等宽限结束才生效：store 初始 stepIndex=-1，挂载头几帧
     // active=false，若此时就杀掉 ramp，第 0 步高亮生效后压暗将永远不落地。
-    if (!ramp.current.done && !intro.current.active) {
+    if (!ramp.current.done && !inGrace) {
       if (!(active && !highlighted)) {
         ramp.current.done = true; // 本对象不需要压暗，ramp 永久跳过
       } else {
@@ -381,15 +397,16 @@ function HighlightGroup({
   /**
    * 压暗的时机（W4 任务 4.5；实测来源：多数场景第 0 步就带 highlight，
    * 旧实现里开场 1.6s 物体全在 0.14 压暗态——开场演出等于在灰画里演）：
-   * - 演出窗口内不压暗，物体随演出淡入到全亮；
-   * - 演出结束后由 useFrame 的 ramp 把压暗在 ~0.35s 内淡入（从全亮突跳
+   * - 宽限窗内（intro 生效中，或无 intro 场景的前 1.6s）不压暗；
+   * - 宽限结束后由 useFrame 的 ramp 把压暗在 ~0.35s 内淡入（从全亮突跳
    *   到 0.14 会像故障）；
-   * - 无 intro / reduced-motion / 播放中的步骤切换：即时压暗（老路径）。
+   * - reduced-motion（dimGrace=0）/ 播放中的步骤切换：即时压暗（老路径）。
    */
-  const ramp = useRef({ done: !intro.current.active, p: 0 });
+  const graceLeft = useRef(dimGrace);
+  const ramp = useRef({ done: !(intro.current.active || dimGrace > 0), p: 0 });
 
   useLayoutEffect(() => {
-    if (intro.current.active) {
+    if (intro.current.active || graceLeft.current > 0) {
       applyDimState(0);
       return;
     }
@@ -463,6 +480,19 @@ function SceneObjects({
           key={def.id}
           highlighted={highlighted.has(def.id)}
           active={active}
+          /*
+           * 压暗宽限窗（任务 4.5）：第 0 步就带 highlight 的场景不该把开场变成灰画。
+           * - intro 生效中：宽限 = 演出时长（压暗等演出结束）
+           * - 声明了 intro 但被 reduced-motion 关掉：0（保持旧路径即时压暗，A 门零回归）
+           * - 没声明 intro：默认 1.6s 宽限（与演出时长同源）
+           */
+          dimGrace={
+            intro.current.active
+              ? Infinity
+              : spec.decor?.intro?.kind
+                ? 0
+                : INTRO_DEFAULT_DURATION
+          }
           // 只有场景声明的"主角"对参数变化做挤压，其余物体保持静止
           pulse={
             def.id === spec.decor?.subject ? () => store.getState().paramPulse.n : undefined

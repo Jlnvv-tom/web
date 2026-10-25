@@ -84,7 +84,8 @@ export const waveScene: SceneSpec = {
     { type: 'grid', id: 'floor', size: [7, 7], divisions: 14, plane: 'xz', color: '#16394a', opacity: 0.2 },
 
     /* ---------- 绳子与波形 ---------- */
-    { type: 'polyline', id: 'curve', bind: 'curve', color: '#22d3ee', width: 2.6 },
+    { type: 'polyline', id: 'curve-halo', bind: 'curve', color: '#22d3ee', width: 11, opacity: 0.16 },
+    { type: 'polyline', id: 'curve', bind: 'curve', color: '#22d3ee', width: 5 },
     { type: 'polyline', id: 'shifted', bind: 'shifted', color: '#475569', width: 1.3, dashed: true },
     // 包络只在驻波模式下有值：行波模式下求解器返回空数组，标 optional 以免契约测试判为断链
     { type: 'polyline', id: 'env-up', bind: 'envUp', color: '#f59e0b', width: 1.2, dashed: true, optional: true },
@@ -95,14 +96,14 @@ export const waveScene: SceneSpec = {
       type: 'particle' as const,
       id: `p${i}`,
       bind: `p${i}`,
-      radius: 0.035,
+      radius: 0.055,
       color: i % 5 === 0 ? '#fbbf24' : '#94a3b8',
       glow: i % 5 === 0,
     })),
 
     /* ---------- 中点质点：用它讲清"质点不迁移" ---------- */
     { type: 'polyline', id: 'mid-track', bind: 'midTrack', color: '#facc15', width: 1.2, dashed: true },
-    { type: 'polyline', id: 'mid-trail', bind: 'midTrail', color: '#facc15', width: 2.4 },
+    { type: 'polyline', id: 'mid-trail', bind: 'midTrail', color: '#facc15', width: 3.5 },
     {
       type: 'vector',
       id: 'v-vec',
