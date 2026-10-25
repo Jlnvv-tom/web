@@ -12,7 +12,7 @@ import { ObjectView } from './objects';
 import { SceneRuntime } from './SceneRuntime';
 import { LabelProjector, deriveLabels } from './labels';
 import { STAGE_DEFAULTS, StageBackdrop, StageLights, TableTop } from './Stage';
-import { IntroContext, advanceIntro, makeIntro, type IntroState } from './intro';
+import { IntroContext, advanceIntro, makeIntro, useIntro, type IntroState } from './intro';
 
 /** 非展台场景的画布底板：比页面（#f6f3ee）深一档，比展台背景再深一档 */
 /** 非展台场景的画布底板。
@@ -268,6 +268,9 @@ function HighlightGroup({
   const gl = useThree((s) => s.gl);
   const [hovered, setHovered] = useState(false);
 
+  // 开场演出状态（W4 任务 4.5）：演出窗口内不压暗，结束后再把压暗淡入
+  const intro = useIntro();
+
   /* 手感状态：hover 的抬升是缓动，点击/改参是弹簧 */
   const lift = useRef(1);
   const spring = useRef({ x: 0, v: 0 });
@@ -320,6 +323,19 @@ function HighlightGroup({
     const q = s.x * squash;
     const L = lift.current;
     g.scale.set(L * (1 - q * 0.45), L * (1 + q), L * (1 - q * 0.45));
+
+    // 演出结束后的压暗淡入（任务 4.5）；ramp 完成后本块零开销。
+    // kill-switch 必须等演出结束才生效：store 初始 stepIndex=-1，挂载头几帧
+    // active=false，若此时就杀掉 ramp，第 0 步高亮生效后压暗将永远不落地。
+    if (!ramp.current.done && !intro.current.active) {
+      if (!(active && !highlighted)) {
+        ramp.current.done = true; // 本对象不需要压暗，ramp 永久跳过
+      } else {
+        ramp.current.p = Math.min(1, ramp.current.p + d / 0.35);
+        applyDimState(1 - (1 - ramp.current.p) ** 3);
+        if (ramp.current.p >= 1) ramp.current.done = true;
+      }
+    }
   });
 
   /** 点击：给弹簧一个初始位移，让它自己回弹（1 → 0.93 → 1.02 → 1） */
@@ -328,7 +344,14 @@ function HighlightGroup({
     spring.current.v = 0;
   };
 
-  useLayoutEffect(() => {
+  /**
+   * 按混合系数写入压暗态：p=0 全亮（不压暗），p=1 完全压暗（opacity 0.14）。
+   *
+   * `__dim` 标记给 applyIntroAlpha 用（"收尾要还原到压暗值而不是基准值"）。
+   * 任务 4.5 之后压暗与演出不再同时存在——演出窗口内 p 恒 0，标记只在
+   * 演出结束后才被写上，min(__dim) 分支保留为防御。
+   */
+  const applyDimState = (p: number) => {
     const g = ref.current;
     if (!g) return;
     g.traverse((o) => {
@@ -340,12 +363,11 @@ function HighlightGroup({
         if (!mat.userData._orig) {
           mat.userData._orig = { op: mat.opacity, tr: mat.transparent };
         }
-        if (active && !highlighted) {
-          // __dim：告诉开场演出"这个物体当前处于压暗态"——
-          // 演出收尾时要把透明度还原到压暗值，而不是基准值（见 applyIntroAlpha）
-          mat.userData.__dim = 0.14;
+        if (active && !highlighted && p > 0) {
+          const dimOp = Math.min(mat.userData._orig.op, 0.14);
+          mat.userData.__dim = dimOp;
           mat.transparent = true;
-          mat.opacity = Math.min(mat.userData._orig.op, 0.14);
+          mat.opacity = mat.userData._orig.op + (dimOp - mat.userData._orig.op) * p;
         } else {
           delete mat.userData.__dim;
           mat.transparent = mat.userData._orig.tr;
@@ -354,6 +376,25 @@ function HighlightGroup({
         mat.needsUpdate = true;
       }
     });
+  };
+
+  /**
+   * 压暗的时机（W4 任务 4.5；实测来源：多数场景第 0 步就带 highlight，
+   * 旧实现里开场 1.6s 物体全在 0.14 压暗态——开场演出等于在灰画里演）：
+   * - 演出窗口内不压暗，物体随演出淡入到全亮；
+   * - 演出结束后由 useFrame 的 ramp 把压暗在 ~0.35s 内淡入（从全亮突跳
+   *   到 0.14 会像故障）；
+   * - 无 intro / reduced-motion / 播放中的步骤切换：即时压暗（老路径）。
+   */
+  const ramp = useRef({ done: !intro.current.active, p: 0 });
+
+  useLayoutEffect(() => {
+    if (intro.current.active) {
+      applyDimState(0);
+      return;
+    }
+    ramp.current.done = true;
+    applyDimState(1);
   }, [highlighted, active]);
 
   return (

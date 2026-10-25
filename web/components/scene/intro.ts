@@ -48,7 +48,8 @@ export function applyIntroAlpha(
     return;
   }
 
-  // 压暗态（HighlightGroup 标记）：基准值要取压暗值，否则演出收尾会把压暗还原没了
+  // 压暗态（HighlightGroup 标记）：基准值要取压暗值，否则演出收尾会把压暗还原没了。
+  // 任务 4.5 之后压暗被推迟到演出结束，演出窗口内此标记不存在——min() 保留为防御。
   const base = u.__dim != null ? Math.min(baseOpacity, u.__dim) : baseOpacity;
 
   // 演出已结束：恢复一次基准值后撒手
