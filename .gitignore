@@ -23,3 +23,4 @@ docs/
 demo/
 shots/
 .workbuddy/__pycache__/
+__pycache__/
