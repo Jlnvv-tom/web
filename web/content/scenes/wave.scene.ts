@@ -26,6 +26,9 @@ export const waveScene: SceneSpec = {
 
   camera: { position: [2.4, 1.8, 3.6], target: [STRING_LENGTH / 2, 0.2, 0], fov: 45 },
 
+  // 装饰层：开场质点与矢量逐点点亮（light-up）——波还没到，先让"这些点会动"成立
+  decor: { intro: { kind: 'light-up' } },
+
   world: { gridSize: 7, gridDivisions: 14, showGrid: true, showAxis: false },
 
   params: [

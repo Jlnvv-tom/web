@@ -39,6 +39,12 @@ BASE = f"http://127.0.0.1:{PORT}"
 BASELINE = ROOT / "baseline"
 
 # 虚拟时钟：冻结真实时钟 + 手动泵帧。必须在页面脚本之前注入。
+#
+# ⚠️ 步长约束：SceneRuntime 与 intro 都有 `Math.min(delta, 0.05)` 的 dt 钳制
+# （防切标签页后的大跳变）。所以**每帧虚拟步长必须 ≤50ms**——用一次
+# __advance(167) 泵 10 帧会被钳成 50ms，整个时钟按比例放慢，
+# 而捕获仍然确定（不报错，只是时间标错了）。__advanceFrames 在页面内部
+# 逐帧泵，步长恒为 frameMs，绕开钳制。
 INIT_JS = """
 (() => {
   const vt = { t: 1000 };
@@ -52,6 +58,10 @@ INIT_JS = """
     const ts = vt.t;
     for (const cb of q) { try { cb(ts); } catch (e) { window.__lastErr = String(e); } }
     return q.length;
+  };
+  // 在页面内部逐帧泵 n 帧（每帧 frameMs ≤ 50ms，不被 dt 钳制放慢）
+  window.__advanceFrames = (n, frameMs) => {
+    for (let i = 0; i < n; i++) window.__advance(frameMs);
   };
 })();
 """
@@ -81,10 +91,8 @@ def capture(page, sid: str, at_s: float, frame_ms: float, errors: list[str]) -> 
     time.sleep(0.3)
 
     n = max(1, round(at_s * 1000 / frame_ms))
-    CHUNK = 10
-    for i in range(0, n, CHUNK):
-        page.evaluate(f"window.__advance({frame_ms * min(CHUNK, n - i)})")
-        time.sleep(0.02)
+    # 逐帧泵（页面内部循环）：步长 frameMs ≤ 50ms，不被 dt 钳制放慢
+    page.evaluate(f"window.__advanceFrames({n}, {frame_ms})")
 
     err = page.evaluate("window.__lastErr || null")
     if err:

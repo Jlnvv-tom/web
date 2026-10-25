@@ -402,9 +402,9 @@ export type StageDef = {
 };
 
 /**
- * 装饰层（M3 · W3）
+ * 装饰层（M3 · W3/W4）
  *
- * **这里的所有东西都不得影响物理。** 它们是"手感"，不是"模型"。
+ * **这里的所有东西都不得影响物理。** 它们是"手感"与"演出"，不是"模型"。
  * 契约测试会验证：把 decor 整个删掉，`sample(t)` 的输出必须逐值相同。
  */
 export type DecorDef = {
@@ -412,6 +412,33 @@ export type DecorDef = {
   subject?: string;
   /** 挤压幅度（0–0.2），默认 0.07 */
   squash?: number;
+  /** 开场演出（M3 · W4）。见 IntroDef */
+  intro?: IntroDef;
+};
+
+/**
+ * 开场演出声明（M3 · W4 · "生动有趣"的主战场）
+ *
+ * 每个场景一个 0–2 秒的专属入场，也是短视频/分享的钩子。
+ * **只作用于装饰层**：渲染层用独立时钟推进，不进 store、不进 solver——
+ * `sample(t)` 拿不到它（宪法第五条），删掉后输出逐值不变（decor 契约测试）。
+ *
+ * kind 是枚举而不是自由参数：5 种效果由渲染层统一实现，场景只选哪一种。
+ * 一旦允许"每个场景自己写演出"，12 个场景就会退化成 12 段特判代码，
+ * 宪法第六条（内容即数据）当场失效。
+ */
+export type IntroKind =
+  | 'trail-bloom' // 主角弹出 + 光晕扩散（洛伦兹力的粒子）
+  | 'wipe-in' // 整体淡入（凸透镜的"一束光打进玻璃"）
+  | 'light-up' // 自发光逐点点亮（机械波的质点/矢量）
+  | 'splash' // 主角弹入 + 冲击环（浮力的"扑通入水"）
+  | 'assemble' // 实体逐个弹出（简谐的摆球放下）
+  | 'none';
+
+export type IntroDef = {
+  kind: IntroKind;
+  /** 时长（秒）。默认 1.6；契约限制 ≤3（m3-plan：0–2 秒，留余量给回弹） */
+  duration?: number;
 };
 
 export type SceneSpec = {
@@ -536,6 +563,12 @@ export const zSceneSpec = z.object({
     .object({
       subject: z.string().optional(),
       squash: z.number().optional(),
+      intro: z
+        .object({
+          kind: z.enum(['trail-bloom', 'wipe-in', 'light-up', 'splash', 'assemble', 'none']),
+          duration: z.number().positive().max(3).optional(),
+        })
+        .optional(),
     })
     .optional(),
   world: z.object({

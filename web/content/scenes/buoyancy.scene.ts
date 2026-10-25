@@ -30,8 +30,9 @@ export const buoyancyScene: SceneSpec = {
 
   camera: { position: [0.55, 0.36, 0.7], target: [0, -0.2, 0], fov: 45 },
 
-  // 装饰层：拖密度/边长时，方块会挤压一下——只改 scale，不改任何物理量
-  decor: { subject: 'block', squash: 0.08 },
+  // 装饰层：拖密度/边长时，方块会挤压一下——只改 scale，不改任何物理量；
+  // 开场"扑通入水"：方块弹入 + 冲击环（splash）
+  decor: { subject: 'block', squash: 0.08, intro: { kind: 'splash' } },
 
   // 台面与水槽底部齐平：容器"放在桌上"，而不是浮在虚空里（M3 · W1）
   world: {

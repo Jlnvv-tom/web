@@ -37,6 +37,9 @@ function digest(spec: SceneSpec) {
 }
 
 const withDecor = SCENES.filter((s) => s.decor);
+const withIntro = SCENES.filter((s) => s.decor?.intro);
+
+const INTRO_KINDS = ['trail-bloom', 'wipe-in', 'light-up', 'splash', 'assemble'] as const;
 
 describe('装饰层 · 不污染物理', () => {
   it('至少有一个场景声明了 decor（否则这条测试是空跑）', () => {
@@ -53,8 +56,12 @@ describe('装饰层 · 不污染物理', () => {
       });
 
       it('subject 指向的对象真实存在（防止改名后留下孤儿引用）', () => {
+        // 只声明 intro 的 decor 没有主角（wipe-in / light-up 不需要）——
+        // W4 起 subject 是可选字段，存在性只在声明了时才断言
+        const subject = spec.decor!.subject;
+        if (subject === undefined) return;
         const ids = new Set(spec.objects.map((o) => o.id));
-        expect(ids.has(spec.decor!.subject!), `subject=${spec.decor!.subject}`).toBe(true);
+        expect(ids.has(subject), `subject=${subject}`).toBe(true);
       });
 
       it('squash 幅度在 (0, 0.2] 内（太大的形变会让物体看起来在"坏掉"）', () => {
@@ -68,6 +75,49 @@ describe('装饰层 · 不污染物理', () => {
         const keys = spec.params.map((p) => p.key);
         expect(keys).not.toContain('decor');
         expect(keys).not.toContain('squash');
+      });
+    });
+  }
+});
+
+describe('开场演出 · intro（M3 · W4 / 宪法第一、五、六条）', () => {
+  it('至少有一个场景声明了 intro（否则这组测试是空跑）', () => {
+    expect(withIntro.length).toBeGreaterThan(0);
+  });
+
+  // 防腐烂：5 种 kind 的渲染实现必须持续被场景消费。
+  // 没有这条，某种 kind 的代码会在某次重构后静默失效半年没人发现。
+  it('5 种 kind 都有场景在用（渲染实现不许腐烂成死代码）', () => {
+    const used = new Set(withIntro.map((s) => s.decor!.intro!.kind));
+    for (const k of INTRO_KINDS) {
+      expect(used.has(k), `没有场景使用 intro kind: ${k}`).toBe(true);
+    }
+  });
+
+  for (const spec of withIntro) {
+    describe(spec.meta.id, () => {
+      it('intro.kind 是合法枚举', () => {
+        expect([...INTRO_KINDS, 'none']).toContain(spec.decor!.intro!.kind);
+      });
+
+      it('intro.duration 在 (0, 3] 内（m3-plan：0–2 秒，留余量给回弹）', () => {
+        const d = spec.decor!.intro!.duration;
+        if (d === undefined) return;
+        expect(d).toBeGreaterThan(0);
+        expect(d).toBeLessThanOrEqual(3);
+      });
+
+      it('删掉 intro 后 sample() 输出逐值相同（G3 的机器保证）', () => {
+        const without: SceneSpec = { ...spec, decor: { ...spec.decor } };
+        delete (without.decor as { intro?: unknown }).intro;
+        expect(digest(without)).toEqual(digest(spec));
+      });
+
+      it('intro 不进入求解器参数（params 里没有演出字段）', () => {
+        const keys = spec.params.map((p) => p.key);
+        expect(keys).not.toContain('intro');
+        expect(keys).not.toContain('kind');
+        expect(keys).not.toContain('duration');
       });
     });
   }

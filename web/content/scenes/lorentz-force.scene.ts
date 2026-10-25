@@ -22,6 +22,9 @@ export const lorentzForceScene: SceneSpec = {
 
   camera: { position: [7.6, 6.1, 10.4], target: [0, 0, 5], fov: 45 },
 
+  // 装饰层：开场粒子弹出 + 光晕扩散（trail-bloom）——先看到"有个东西进去了"，再看它转
+  decor: { subject: 'particle', intro: { kind: 'trail-bloom' } },
+
   world: { gridSize: 26, gridDivisions: 26, showGrid: true, showAxis: false },
 
   params: [

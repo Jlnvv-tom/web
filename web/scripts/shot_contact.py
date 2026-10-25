@@ -85,9 +85,7 @@ def capture(page, sid: str, at_s: float, frame_ms: float) -> Image.Image:
     page.evaluate("window.__advance(16.7)")
     time.sleep(0.3)
     n = max(1, round(at_s * 1000 / frame_ms))
-    for i in range(0, n, 10):
-        page.evaluate(f"window.__advance({frame_ms * min(10, n - i)})")
-        time.sleep(0.02)
+    page.evaluate(f"window.__advanceFrames({n}, {frame_ms})")
     png = page.query_selector("canvas").screenshot()
     return Image.open(io.BytesIO(png)).convert("RGB")
 
