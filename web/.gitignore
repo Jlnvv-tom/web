@@ -22,4 +22,4 @@ swc.tgz
 docs/
 demo/
 shots/
-.workbuddy/
+.workbuddy/__pycache__/
