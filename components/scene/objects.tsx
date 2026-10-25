@@ -583,7 +583,14 @@ function LensObject({ def }: { def: Extract<ObjectDef, { type: 'lens' }> }) {
   );
 }
 
-function DiscObject({ def }: { def: Extract<ObjectDef, { type: 'disc' }> }) {
+function DiscObject({
+  def,
+  stateRef,
+}: {
+  def: Extract<ObjectDef, { type: 'disc' }>;
+  stateRef?: StateRef;
+}) {
+  const group = useRef<THREE.Group>(null);
   const mesh = useRef<THREE.Mesh>(null);
   const intro = useIntro();
   useFrame(() => {
@@ -594,9 +601,21 @@ function DiscObject({ def }: { def: Extract<ObjectDef, { type: 'disc' }> }) {
       intro.current,
       fx.alpha
     );
+    // position 绑定 points[key] 时逐帧跟随（v0.5，如抛体的落点尘环）
+    if (group.current && typeof def.position === 'string') {
+      const p = resolvePoint(
+        stateRef?.current ?? ({ points: {} } as unknown as SceneState),
+        def.position
+      );
+      group.current.position.set(p[0], p[1], p[2]);
+    }
   });
   return (
-    <group position={def.position} rotation={def.rotation ?? [0, 0, 0]}>
+    <group
+      ref={group}
+      position={typeof def.position === 'string' ? [0, 0, 0] : def.position}
+      rotation={def.rotation ?? [0, 0, 0]}
+    >
       {def.ring ? (
         <mesh ref={mesh}>
           <ringGeometry args={[def.radius * 0.995, def.radius, 64]} />
@@ -691,7 +710,7 @@ function renderObject(def: ObjectDef, stateRef: StateRef, subjectId?: string) {
           color={ink(def.color, '#22d3ee')}
           width={def.width ?? 2}
           dashed={def.dashed}
-          opacity={0.9}
+          opacity={def.opacity ?? 0.9}
         />
       );
 
@@ -702,7 +721,7 @@ function renderObject(def: ObjectDef, stateRef: StateRef, subjectId?: string) {
           color={ink(def.color, '#94a3b8')}
           width={def.width ?? 1.6}
           dashed={def.dashed}
-          opacity={0.95}
+          opacity={def.opacity ?? 0.95}
         />
       ) : (
         <PolylineStatic def={def} />
@@ -743,7 +762,7 @@ function renderObject(def: ObjectDef, stateRef: StateRef, subjectId?: string) {
       return <LensObject def={def} />;
 
     case 'disc':
-      return <DiscObject def={def} />;
+      return <DiscObject def={def} stateRef={stateRef} />;
 
     case 'box':
       return <BoxObject def={def} stateRef={stateRef} isSubject={isSubject} />;
@@ -887,7 +906,30 @@ function BoxObject({
   );
   // 低画质档位不能用 transmission，退回半透明；两者不能同时开，否则会双重变淡
   const fallback = !highQuality && needsTransmission(m);
-  const baseOpacity = useTransmission ? 1 : fallback ? m.fallbackOpacity : m.opacity;
+  // 区域示意体积（v0.5 unlit）：无光照、不写深度、双面。见 spec.ts 字段注释。
+  const baseOpacity = def.unlit
+    ? def.opacity ?? 0.14
+    : useTransmission
+      ? 1
+      : fallback
+        ? m.fallbackOpacity
+        : m.opacity;
+
+  if (def.unlit) {
+    return (
+      <group ref={group} position={typeof def.position === 'string' ? [0, 0, 0] : def.position} rotation={def.rotation ?? [0, 0, 0]}>
+        <mesh ref={mesh} geometry={geom}>
+          <meshBasicMaterial
+            color={ink(def.color, '#38bdf8')}
+            transparent
+            opacity={baseOpacity}
+            depthWrite={false}
+            side={THREE.DoubleSide}
+          />
+        </mesh>
+      </group>
+    );
+  }
 
   return (
     <group ref={group} position={typeof def.position === 'string' ? [0, 0, 0] : def.position} rotation={def.rotation ?? [0, 0, 0]}>
@@ -971,7 +1013,7 @@ function PolylineStatic({ def }: { def: Extract<ObjectDef, { type: 'polyline' }>
         dashSize={0.12}
         gapSize={0.1}
         transparent
-        opacity={0.95}
+        opacity={def.opacity ?? 0.95}
       />
       {arrows.map((a, i) => (
         <StaticArrow key={i} from={a.from} to={a.to} color={ink(def.color, '#94a3b8')} radius={0.022} />

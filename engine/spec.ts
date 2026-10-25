@@ -8,6 +8,8 @@
  *   v0.1  初版：12 种图元
  *   v0.2  新增 SceneState.linesets（多折线集合）与 polylines 图元；
  *         新增 camera.fov / vector.maxLength / plane.bindPosition（均为可选，向后兼容）
+ *   v0.5  trail / polyline 增补可选 opacity（W4 补墨：同 bind 的宽淡"光晕层"）；
+ *         0.3/0.4 的增补见 010 变更记录
  *
  * 三层结构：
  *   spec（静态声明） + solver（数值内核） + state（每帧求解结果）
@@ -111,7 +113,16 @@ export type ObjectDef = (
       radius?: number;
     }
   /** 轨迹线（累积点） */
-  | { type: 'trail'; id: string; bind: Bind; color?: string; width?: number; dashed?: boolean }
+  | {
+      type: 'trail';
+      id: string;
+      bind: Bind;
+      color?: string;
+      width?: number;
+      dashed?: boolean;
+      /** 不透明度（v0.5）。缺省 0.9；低值做"光晕层"（同 bind 的宽淡副本） */
+      opacity?: number;
+    }
   /**
    * 多条折线（电场线、等势线这类「数量不定」的曲线族）
    *
@@ -139,6 +150,8 @@ export type ObjectDef = (
       dashed?: boolean;
       /** 每条线是否画箭头（光线方向） */
       arrows?: boolean;
+      /** 不透明度（v0.5）。缺省 0.95 */
+      opacity?: number;
       /**
        * 该折线只在部分参数下存在（如凸透镜的虚像延长线）：
        * 缺省时缺失会被契约测试判为断链，标了 optional 才允许缺省。
@@ -243,6 +256,12 @@ export type ObjectDef = (
        * 给它们贴木纹会让"这条线代表 E"这个约定失效。
        */
       material?: MaterialKind;
+      /**
+       * 无光照着色体积（v0.5）。用于"磁场区/等势区"这类**区域示意**：
+       * 不受光（meshBasicMaterial）、不写深度、双面——受光材质会把半透明
+       * 体积照成近白的一团雾，还会用深度把体积内的线条整个盖掉。
+       */
+      unlit?: boolean;
     }
   /** 带箭头的线段（物高 / 像高） */
   | {
@@ -258,7 +277,8 @@ export type ObjectDef = (
   | {
       type: 'disc';
       id: string;
-      position: Vec3;
+      /** 位置，可绑定 points[key] 跟随运动（v0.5，如抛体的落点尘环） */
+      position: Vec3 | Bind;
       radius: number;
       rotation?: Vec3;
       color?: string;

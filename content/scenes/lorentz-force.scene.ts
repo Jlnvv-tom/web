@@ -103,8 +103,19 @@ export const lorentzForceScene: SceneSpec = {
       count: [3, 2, 5],
       spacing: 4.2,
       color: '#38bdf8',
-      opacity: 0.3,
+      opacity: 0.4,
       flipBind: 'bSign',
+    },
+    {
+      // 磁场区雾墙（W4 补墨）：把"匀强磁场充满这个空间"画成一块半透明体积，
+      // 与 B-field 箭头阵列同体积对齐。只是示意的着色体积，不承载任何物理量。
+      type: 'box',
+      id: 'B-region',
+      size: [13.2, 6, 21.5],
+      position: [0, 0, 0],
+      color: '#38bdf8',
+      opacity: 0.16,
+      unlit: true,
     },
     {
       type: 'polyline',
@@ -115,17 +126,26 @@ export const lorentzForceScene: SceneSpec = {
       dashed: true,
     },
     {
+      // 光晕层（W4 补墨）：同一条轨迹的宽淡副本，细线在浅底上才有"荧光"的体积感
+      type: 'trail',
+      id: 'trail-halo',
+      bind: 'trail',
+      color: '#22d3ee',
+      width: 16,
+      opacity: 0.16,
+    },
+    {
       type: 'trail',
       id: 'trail',
       bind: 'trail',
       color: '#22d3ee',
-      width: 4,
+      width: 6.5,
     },
     {
       type: 'particle',
       id: 'particle',
       bind: 'pos',
-      radius: 0.32,
+      radius: 0.36,
       color: '#ff8a3d',
       glow: true,
     },

@@ -81,6 +81,10 @@ for (const spec of SCENES) {
             case 'plane':
               if (o.bindPosition) expect(st.points[o.bindPosition], `${at} plane ${o.id}`).toBeDefined();
               break;
+            case 'disc':
+              if (typeof o.position === 'string')
+                expect(st.points[o.position], `${at} disc ${o.id}`).toBeDefined();
+              break;
             case 'text':
               if (isBindable(o.position)) expect(st.points[o.position], `${at} text ${o.id}`).toBeDefined();
               break;
