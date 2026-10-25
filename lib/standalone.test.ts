@@ -98,7 +98,7 @@ describe('离线导出 · HTML 拼装', () => {
     expect(html).toContain('WebGL');
   });
 
-  it('12 个场景全都能拼装且 JSON 可解析', () => {
+  it('全部场景都能拼装且 JSON 可解析', () => {
     for (const spec of SCENES) {
       const h = buildStandaloneHtml({ spec, runtimeJs: 'void 0', css: '' });
       const back = JSON.parse(extractSpecJson(h)) as SceneSpec;
