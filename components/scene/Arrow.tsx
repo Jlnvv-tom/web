@@ -5,6 +5,7 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { Vec3 } from '@/engine/vec';
 import { ink } from '@/engine/palette';
+import { applyIntroAlpha, introFx, useIntro } from './intro';
 
 const UP = new THREE.Vector3(0, 1, 0);
 
@@ -39,6 +40,7 @@ export function Arrow({
 }) {
   const shaft = useRef<THREE.Mesh>(null);
   const head = useRef<THREE.Mesh>(null);
+  const intro = useIntro();
   const tmp = useMemo(
     () => ({
       o: new THREE.Vector3(),
@@ -88,6 +90,16 @@ export function Arrow({
     h.quaternion.copy(tmp.q);
     h.position.copy(tmp.o).addScaledVector(dirn, shaftLen + headLen / 2);
     h.scale.setScalar(headLen / 0.28);
+
+    // 开场演出（W4）：淡入 + 点亮。不做缩放——箭头的位置与长度每帧由
+    // getOrigin/getVector 驱动，缩放会和长度逻辑打架（v1 已知边界）。
+    // 透明度统一走 applyIntroAlpha：它会在演出结束后撒手，
+    // 不覆盖高亮压暗、也不会把 transparent 变体留在旧 shader 上。
+    const fx = introFx(intro.current);
+    for (const m of [s, h]) {
+      applyIntroAlpha(m.material as THREE.MeshStandardMaterial, opacity, intro.current, fx.alpha);
+      (m.material as THREE.MeshStandardMaterial).emissiveIntensity = emissive * fx.emissive;
+    }
   });
 
   return (

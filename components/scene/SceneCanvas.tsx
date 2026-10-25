@@ -12,6 +12,7 @@ import { ObjectView } from './objects';
 import { SceneRuntime } from './SceneRuntime';
 import { LabelProjector, deriveLabels } from './labels';
 import { STAGE_DEFAULTS, StageBackdrop, StageLights, TableTop } from './Stage';
+import { IntroContext, advanceIntro, makeIntro, type IntroState } from './intro';
 
 /** 非展台场景的画布底板：比页面（#f6f3ee）深一档，比展台背景再深一档 */
 /** 非展台场景的画布底板。
@@ -340,9 +341,13 @@ function HighlightGroup({
           mat.userData._orig = { op: mat.opacity, tr: mat.transparent };
         }
         if (active && !highlighted) {
+          // __dim：告诉开场演出"这个物体当前处于压暗态"——
+          // 演出收尾时要把透明度还原到压暗值，而不是基准值（见 applyIntroAlpha）
+          mat.userData.__dim = 0.14;
           mat.transparent = true;
           mat.opacity = Math.min(mat.userData._orig.op, 0.14);
         } else {
+          delete mat.userData.__dim;
           mat.transparent = mat.userData._orig.tr;
           mat.opacity = mat.userData._orig.op;
         }
@@ -401,8 +406,15 @@ function SceneObjects({
 
   const active = highlighted.size > 0;
 
+  // 开场演出（W4）：时钟归 SceneObjects 所有——它只驱动 mesh 变换，
+  // 不进 store、不进 solver（宪法第五条）。每帧推进，结束后快路径零开销。
+  const intro = useRef<IntroState>(
+    makeIntro(spec.decor?.intro?.kind, spec.decor?.intro?.duration)
+  );
+  useFrame((_, delta) => advanceIntro(intro.current, Math.min(delta, 0.05)));
+
   return (
-    <>
+    <IntroContext.Provider value={intro}>
       {spec.objects
         .filter((def) => !(hideGrid && def.type === 'grid'))
         .map((def) => (
@@ -421,10 +433,10 @@ function SceneObjects({
             st.select(st.selectedId === def.id ? null : def.id);
           }}
         >
-          <ObjectView def={def} stateRef={stateRef} />
+          <ObjectView def={def} stateRef={stateRef} subjectId={spec.decor?.subject} />
         </HighlightGroup>
       ))}
-    </>
+    </IntroContext.Provider>
   );
 }
 

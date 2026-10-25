@@ -24,6 +24,9 @@ export const thinLensScene: SceneSpec = {
 
   camera: { position: [2.0, 3.7, 7.1], target: [0, -0.3, 0], fov: 44 },
 
+  // 装饰层：开场整套光路淡入（wipe-in）——像一束光打进玻璃，像再浮现
+  decor: { intro: { kind: 'wipe-in' } },
+
   world: { showGrid: false, showAxis: false, gridSize: 16, gridDivisions: 16 },
 
   params: [

@@ -25,8 +25,8 @@ export const shmScene: SceneSpec = {
 
   camera: { position: [1.0, 0.8, 1.2], target: [0, 0.5, 0], fov: 45 },
 
-  // 装饰层：拖摆长/振幅时，摆球挤压回弹
-  decor: { subject: 'bob', squash: 0.07 },
+  // 装饰层：拖摆长/振幅时，摆球挤压回弹；开场时摆球"放下"（assemble 弹出）
+  decor: { subject: 'bob', squash: 0.07, intro: { kind: 'assemble' } },
 
   // 摆球的最低点在台面上方一点点：影子贴着摆动轨迹走，是"简谐"最好懂的视觉线索（M3 · W1）
   world: {

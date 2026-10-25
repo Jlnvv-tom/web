@@ -11,9 +11,54 @@ import { Arrow, StaticArrow } from './Arrow';
 import { ink } from '@/engine/palette';
 import { needsTransmission, resolveMaterial } from '@/engine/materials';
 import { getQuality } from './quality';
+import { applyIntroAlpha, introFx, useIntro } from './intro';
 import { textureFor, tiledTexture } from './textures';
 
 export type StateRef = { current: SceneState };
+
+/* ============================================================
+   开场演出（W4）的公共应用
+
+   每个图元在自己的 useFrame 里调 readFx()，把 intro 进度翻译成
+   缩放/透明度/自发光乘子。**全部走 ref 直写，不触发 React 重渲染**
+   （与 stateRef 同构）。intro 禁用时 introFx 返回恒等，零开销。
+   ============================================================ */
+
+/**
+ * 开场演出对材质透明度的唯一切入点 —— 见 components/scene/intro.ts 的
+ * applyIntroAlpha（移到那里是为了让 Arrow.tsx 也能用，避免循环依赖）。
+ */
+
+/** 冲击环（splash kind 的主角配件）：半径扩散 + 透明度衰减，贴在主角脚下 */
+function SplashRing({
+  radius,
+  opacity,
+  getPosition,
+}: {
+  radius: number;
+  opacity: number;
+  getPosition: () => Vec3 | undefined;
+}) {
+  const mesh = useRef<THREE.Mesh>(null);
+  const intro = useIntro();
+  useFrame(() => {
+    if (!mesh.current) return;
+    const p = getPosition();
+    if (p) mesh.current.position.set(p[0], p[1], p[2]);
+    const pr = intro.current.progress;
+    // 演出结束后整个环隐藏：不留一个 opacity 0 的透明网格参与排序
+    mesh.current.visible = pr < 0.999;
+    const s = radius * (0.3 + 2.2 * pr);
+    mesh.current.scale.set(s, s, s);
+    (mesh.current.material as THREE.MeshBasicMaterial).opacity = opacity * (1 - pr) ** 1.5;
+  });
+  return (
+    <mesh ref={mesh} rotation={[-Math.PI / 2, 0, 0]}>
+      <ringGeometry args={[0.82, 1, 48]} />
+      <meshBasicMaterial color={ink(undefined, '#38bdf8')} transparent opacity={0} depthWrite={false} />
+    </mesh>
+  );
+}
 
 /* ============================================================
    工具
@@ -64,14 +109,25 @@ function DynLine({
 }) {
   const ref = useRef<never>(null);
   const buf = useMemo(() => new Float32Array(MAX_POINTS * 3), []);
+  const intro = useIntro();
 
   useFrame(() => {
     const line = ref.current as unknown as {
       visible: boolean;
       geometry: { setPositions: (a: Float32Array) => void; setDrawRange?: (s: number, c: number) => void };
       computeLineDistances?: () => void;
+      material?: THREE.Material & { opacity: number; transparent: boolean };
     } | null;
     if (!line) return;
+
+    // 开场演出（W4）：线条是稀疏场景的主体，淡入优先于一切
+    const fx = introFx(intro.current);
+    applyIntroAlpha(
+      line.material as (THREE.Material & { opacity: number; transparent: boolean }) | undefined,
+      opacity,
+      intro.current,
+      fx.alpha
+    );
 
     const pts = getPoints();
     if (!pts || pts.length < 2) {
@@ -127,6 +183,8 @@ function MultiPolyline({
 }) {
   const [sets, setSets] = useState<Vec3[][]>(EMPTY_SETS);
   const last = useRef<Vec3[][] | undefined>(undefined);
+  const lineRefs = useRef<(never | null)[]>([]);
+  const intro = useIntro();
 
   useFrame(() => {
     const ls = stateRef.current.linesets?.[def.bind];
@@ -134,6 +192,19 @@ function MultiPolyline({
     if (ls !== last.current) {
       last.current = ls;
       setSets(ls ?? EMPTY_SETS);
+    }
+  });
+
+  // 开场演出（W4）：整族线一起淡入。ref 逐个直写，不触发重渲染
+  useFrame(() => {
+    const fx = introFx(intro.current);
+    for (const r of lineRefs.current) {
+      applyIntroAlpha(
+        (r as unknown as { material?: THREE.Material & { opacity: number; transparent: boolean } } | null)?.material,
+        def.opacity ?? 0.85,
+        intro.current,
+        fx.alpha
+      );
     }
   });
 
@@ -145,6 +216,9 @@ function MultiPolyline({
         pts.length >= 2 ? (
           <Line
             key={i}
+            ref={(r: never) => {
+              lineRefs.current[i] = r;
+            }}
             points={pts}
             color={ink(def.color, '#38bdf8')}
             lineWidth={def.width ?? 1.2}
@@ -167,9 +241,11 @@ function MultiPolyline({
 function Particle({
   def,
   stateRef,
+  isSubject = false,
 }: {
   def: Extract<ObjectDef, { type: 'particle' }>;
   stateRef: StateRef;
+  isSubject?: boolean;
 }) {
   const bind = def.bind ?? 'pos';
   const r = def.radius ?? 0.16;
@@ -180,12 +256,26 @@ function Particle({
   // 指定了材质 = 这是个"实物球"（摆球、钩码），走 PBR；否则是发光标记点
   const m = def.material ? resolveMaterial(def.material) : null;
   const seg = def.segments ?? 28;
+  const intro = useIntro();
+  const splash = isSubject && intro.current.kind === 'splash';
 
   useFrame(() => {
     const p = stateRef.current.points[bind];
     if (!p) return;
     mesh.current?.position.set(p[0], p[1], p[2]);
     halo.current?.position.set(p[0], p[1], p[2]);
+
+    // 开场演出（W4）：缩放/透明度/光晕。禁用时恒等，零开销
+    const fx = introFx(intro.current, isSubject);
+    mesh.current?.scale.setScalar(fx.scale);
+    if (halo.current) {
+      const hs = r * 7 * fx.halo;
+      halo.current.scale.set(hs, hs, 1);
+      applyIntroAlpha(halo.current.material as THREE.SpriteMaterial, 0.55, intro.current, fx.alpha);
+    }
+    const mat = mesh.current?.material as THREE.MeshStandardMaterial | undefined;
+    applyIntroAlpha(mat, 1, intro.current, fx.alpha);
+    if (mat && !m) mat.emissiveIntensity = 0.55 * fx.emissive;
   });
 
   return (
@@ -230,6 +320,10 @@ function Particle({
           />
         </sprite>
       )}
+      {/* splash 演出：主角入水的冲击环（纯装饰，贴主角当前位置） */}
+      {splash ? (
+        <SplashRing radius={r * 5} opacity={0.55} getPosition={() => stateRef.current.points[bind]} />
+      ) : null}
     </group>
   );
 }
@@ -295,9 +389,16 @@ function GridPlane({ def }: { def: Extract<ObjectDef, { type: 'grid' }> }) {
   }, [segments]);
 
   const rot: Vec3 = def.plane === 'xy' ? [0, 0, 0] : def.plane === 'yz' ? [0, 0, Math.PI / 2] : [-Math.PI / 2, 0, 0];
+  const lines = useRef<THREE.LineSegments>(null);
+  const intro = useIntro();
+
+  useFrame(() => {
+    const fx = introFx(intro.current);
+    applyIntroAlpha(lines.current?.material as THREE.LineBasicMaterial, op, intro.current, fx.alpha);
+  });
 
   return (
-    <lineSegments geometry={geom} rotation={rot}>
+    <lineSegments ref={lines} geometry={geom} rotation={rot}>
       <lineBasicMaterial color={color} transparent opacity={op} depthWrite={false} />
     </lineSegments>
   );
@@ -315,11 +416,15 @@ function FieldArrows({
   const color = ink(def.color, '#38bdf8');
   const op = def.opacity ?? 0.55;
   const group = useRef<THREE.Group>(null);
+  const intro = useIntro();
 
+  // flipBind 翻转 + 开场演出（W4）组级缩放合并到同一帧：
+  // StaticArrow 是静态几何、没有每帧材质句柄，只做组级缩放（v1 已知边界）
   useFrame(() => {
-    if (!group.current || !def.flipBind) return;
-    const sign = Math.sign(stateRef.current.scalars[def.flipBind] ?? 1) || 1;
-    group.current.scale.set(1, sign, 1);
+    if (!group.current) return;
+    const sign = Math.sign(stateRef.current.scalars[def.flipBind ?? ''] ?? 1) || 1;
+    const fx = introFx(intro.current);
+    group.current.scale.set(fx.scale, sign * fx.scale, fx.scale);
   });
 
   const arrows = useMemo(() => {
@@ -358,6 +463,8 @@ function FieldArrows({
 
 function Axis({ def }: { def: Extract<ObjectDef, { type: 'axis' }> }) {
   const L = def.length;
+  const lineRefs = useRef<(never | null)[]>([]);
+  const intro = useIntro();
   const axes = useMemo(
     () => [
       // 坐标轴是标准的 RGB 语义色（x 红 / y 绿 / z 蓝），过 ink() 保色相、只压明度
@@ -368,11 +475,32 @@ function Axis({ def }: { def: Extract<ObjectDef, { type: 'axis' }> }) {
     [L]
   );
 
+  useFrame(() => {
+    const fx = introFx(intro.current);
+    for (const r of lineRefs.current) {
+      applyIntroAlpha(
+        (r as unknown as { material?: THREE.Material & { opacity: number; transparent: boolean } } | null)?.material,
+        0.55,
+        intro.current,
+        fx.alpha
+      );
+    }
+  });
+
   return (
     <group>
-      {axes.map((a) => (
+      {axes.map((a, i) => (
         <group key={a.n}>
-          <Line points={a.p} color={a.c} lineWidth={1.4} transparent opacity={0.55} />
+          <Line
+            ref={(r: never) => {
+              lineRefs.current[i] = r;
+            }}
+            points={a.p}
+            color={a.c}
+            lineWidth={1.4}
+            transparent
+            opacity={0.55}
+          />
 
         </group>
       ))}
@@ -385,6 +513,9 @@ function PlaneObject({ def, stateRef }: { def: Extract<ObjectDef, { type: 'plane
   const geom = useMemo(() => new THREE.PlaneGeometry(w, h), [w, h]);
   const edges = useMemo(() => new THREE.EdgesGeometry(geom), [geom]);
   const group = useRef<THREE.Group>(null);
+  const mesh = useRef<THREE.Mesh>(null);
+  const outline = useRef<THREE.LineSegments>(null);
+  const intro = useIntro();
 
   useFrame(() => {
     if (!def.bindPosition || !group.current) return;
@@ -392,9 +523,16 @@ function PlaneObject({ def, stateRef }: { def: Extract<ObjectDef, { type: 'plane
     if (p) group.current.position.set(p[0], p[1], p[2]);
   });
 
+  // 开场演出（W4）：面 + 轮廓一起淡入
+  useFrame(() => {
+    const fx = introFx(intro.current);
+    applyIntroAlpha(mesh.current?.material as THREE.MeshStandardMaterial, def.opacity ?? 0.18, intro.current, fx.alpha);
+    applyIntroAlpha(outline.current?.material as THREE.LineBasicMaterial, 0.6, intro.current, fx.alpha);
+  });
+
   return (
     <group ref={group} position={def.position} rotation={def.rotation ?? [0, 0, 0]}>
-      <mesh geometry={geom}>
+      <mesh ref={mesh} geometry={geom}>
         <meshStandardMaterial
           color={def.color ?? '#64748b'}
           transparent
@@ -405,7 +543,7 @@ function PlaneObject({ def, stateRef }: { def: Extract<ObjectDef, { type: 'plane
         />
       </mesh>
       {def.outline !== false && (
-        <lineSegments geometry={edges}>
+        <lineSegments ref={outline} geometry={edges}>
           <lineBasicMaterial color={ink(def.color, '#94a3b8', { role: 'structure' })} transparent opacity={0.6} />
         </lineSegments>
       )}
@@ -416,9 +554,15 @@ function PlaneObject({ def, stateRef }: { def: Extract<ObjectDef, { type: 'plane
 function LensObject({ def }: { def: Extract<ObjectDef, { type: 'lens' }> }) {
   const cap = def.kind ?? 'convex';
   const sx = def.thickness / 2;
+  const mesh = useRef<THREE.Mesh>(null);
+  const intro = useIntro();
+  useFrame(() => {
+    const fx = introFx(intro.current);
+    applyIntroAlpha(mesh.current?.material as THREE.MeshPhysicalMaterial, def.opacity ?? 0.42, intro.current, fx.alpha);
+  });
   return (
     <group position={def.position}>
-      <mesh scale={[Math.max(sx, 0.02), def.semiHeight, def.semiHeight]}>
+      <mesh ref={mesh} scale={[Math.max(sx, 0.02), def.semiHeight, def.semiHeight]}>
         <sphereGeometry args={[1, 48, 32]} />
         <meshPhysicalMaterial
           color={def.color ?? '#9fd8ff'}
@@ -440,15 +584,26 @@ function LensObject({ def }: { def: Extract<ObjectDef, { type: 'lens' }> }) {
 }
 
 function DiscObject({ def }: { def: Extract<ObjectDef, { type: 'disc' }> }) {
+  const mesh = useRef<THREE.Mesh>(null);
+  const intro = useIntro();
+  useFrame(() => {
+    const fx = introFx(intro.current);
+    applyIntroAlpha(
+      mesh.current?.material as THREE.MeshBasicMaterial,
+      def.opacity ?? (def.ring ? 0.5 : 0.25),
+      intro.current,
+      fx.alpha
+    );
+  });
   return (
     <group position={def.position} rotation={def.rotation ?? [0, 0, 0]}>
       {def.ring ? (
-        <mesh>
+        <mesh ref={mesh}>
           <ringGeometry args={[def.radius * 0.995, def.radius, 64]} />
           <meshBasicMaterial color={ink(def.color, '#22d3ee')} transparent opacity={def.opacity ?? 0.5} side={THREE.DoubleSide} />
         </mesh>
       ) : (
-        <mesh>
+        <mesh ref={mesh}>
           <circleGeometry args={[def.radius, 64]} />
           <meshBasicMaterial color={ink(def.color, '#0e2a3a', { role: 'structure' })} transparent opacity={def.opacity ?? 0.25} side={THREE.DoubleSide} />
         </mesh>
@@ -503,8 +658,17 @@ function Gate({ bind, stateRef, children }: { bind: string; stateRef: StateRef; 
   return <group ref={ref}>{children}</group>;
 }
 
-export function ObjectView({ def, stateRef }: { def: ObjectDef; stateRef: StateRef }) {
-  const inner = renderObject(def, stateRef);
+export function ObjectView({
+  def,
+  stateRef,
+  subjectId,
+}: {
+  def: ObjectDef;
+  stateRef: StateRef;
+  /** decor.subject：trail-bloom / splash 演出的主角 */
+  subjectId?: string;
+}) {
+  const inner = renderObject(def, stateRef, subjectId);
   if (!def.visible) return inner;
   return (
     <Gate bind={def.visible} stateRef={stateRef}>
@@ -513,10 +677,12 @@ export function ObjectView({ def, stateRef }: { def: ObjectDef; stateRef: StateR
   );
 }
 
-function renderObject(def: ObjectDef, stateRef: StateRef) {
+function renderObject(def: ObjectDef, stateRef: StateRef, subjectId?: string) {
+  // 只有主角对 trail-bloom / splash 拿完整效果，其余物体只淡入
+  const isSubject = def.id === subjectId;
   switch (def.type) {
     case 'particle':
-      return <Particle def={def} stateRef={stateRef} />;
+      return <Particle def={def} stateRef={stateRef} isSubject={isSubject} />;
 
     case 'trail':
       return (
@@ -580,7 +746,7 @@ function renderObject(def: ObjectDef, stateRef: StateRef) {
       return <DiscObject def={def} />;
 
     case 'box':
-      return <BoxObject def={def} stateRef={stateRef} />;
+      return <BoxObject def={def} stateRef={stateRef} isSubject={isSubject} />;
 
     case 'sector':
       return <SectorObject def={def} stateRef={stateRef} />;
@@ -621,6 +787,9 @@ function SectorObject({
     return g;
   }, []);
 
+  const mesh = useRef<THREE.Mesh>(null);
+  const intro = useIntro();
+
   useFrame(() => {
     const arc = stateRef.current.lines[def.arc];
     const c = typeof def.center === 'string' ? stateRef.current.points[def.center] : def.center;
@@ -638,10 +807,13 @@ function SectorObject({
     attr.needsUpdate = true;
     // 三角扇：n-1 个三角形 × 3 个索引
     geom.setDrawRange(0, (n - 1) * 3);
+    // 开场演出（W4）
+    const fx = introFx(intro.current);
+    applyIntroAlpha(mesh.current?.material as THREE.MeshBasicMaterial, def.opacity ?? 0.22, intro.current, fx.alpha);
   });
 
   return (
-    <mesh geometry={geom} frustumCulled={false}>
+    <mesh ref={mesh} geometry={geom} frustumCulled={false}>
       <meshBasicMaterial
         color={ink(def.color, '#22d3ee')}
         transparent
@@ -660,9 +832,11 @@ function SectorObject({
 function BoxObject({
   def,
   stateRef,
+  isSubject = false,
 }: {
   def: Extract<ObjectDef, { type: 'box' }>;
   stateRef: StateRef;
+  isSubject?: boolean;
 }) {
   const [w, h, d] = def.size;
   const r = Math.min(def.round ?? 0, Math.min(w, h, d) / 2.2);
@@ -671,6 +845,9 @@ function BoxObject({
     [w, h, d, r]
   );
   const group = useRef<THREE.Group>(null);
+  const mesh = useRef<THREE.Mesh>(null);
+  const intro = useIntro();
+  const splash = isSubject && intro.current.kind === 'splash';
 
   useFrame(() => {
     if (!group.current) return;
@@ -681,6 +858,10 @@ function BoxObject({
     if (def.rotationY != null) {
       group.current.rotation.y = stateRef.current.scalars[def.rotationY] ?? 0;
     }
+    // 开场演出（W4）：整体缩放 + 材质淡入（透明度走统一切入点，保护高亮压暗）
+    const fx = introFx(intro.current, isSubject);
+    group.current.scale.setScalar(fx.scale);
+    applyIntroAlpha(mesh.current?.material as THREE.MeshPhysicalMaterial, baseOpacity, intro.current, fx.alpha);
   });
 
   /**
@@ -706,11 +887,11 @@ function BoxObject({
   );
   // 低画质档位不能用 transmission，退回半透明；两者不能同时开，否则会双重变淡
   const fallback = !highQuality && needsTransmission(m);
-  const opacity = useTransmission ? 1 : fallback ? m.fallbackOpacity : m.opacity;
+  const baseOpacity = useTransmission ? 1 : fallback ? m.fallbackOpacity : m.opacity;
 
   return (
     <group ref={group} position={typeof def.position === 'string' ? [0, 0, 0] : def.position} rotation={def.rotation ?? [0, 0, 0]}>
-      <mesh geometry={geom} castShadow receiveShadow>
+      <mesh ref={mesh} geometry={geom} castShadow receiveShadow>
         <meshPhysicalMaterial
           color={m.color}
           map={map ?? undefined}
@@ -722,14 +903,24 @@ function BoxObject({
           transmission={useTransmission ? m.transmission : 0}
           thickness={m.thickness}
           ior={m.ior}
-          transparent={opacity < 1}
-          opacity={opacity}
+          transparent={baseOpacity < 1}
+          opacity={baseOpacity}
         />
       </mesh>
       {def.emissive ? (
         <mesh geometry={geom}>
           <meshBasicMaterial color={def.color ?? '#8b98a8'} transparent opacity={0.28 * def.emissive} blending={THREE.AdditiveBlending} depthWrite={false} />
         </mesh>
+      ) : null}
+      {/* splash 演出：主角（方块）入水的冲击环 */}
+      {splash ? (
+        <SplashRing
+          radius={Math.max(w, h, d) * 2.2}
+          opacity={0.5}
+          getPosition={() =>
+            typeof def.position === 'string' ? stateRef.current.points[def.position] : def.position
+          }
+        />
       ) : null}
     </group>
   );
@@ -738,6 +929,18 @@ function BoxObject({
 /** 静态折线（可带方向箭头） */
 function PolylineStatic({ def }: { def: Extract<ObjectDef, { type: 'polyline' }> }) {
   const pts = def.points ?? [];
+  const lineRef = useRef<never>(null);
+  const intro = useIntro();
+  useFrame(() => {
+    const fx = introFx(intro.current);
+    applyIntroAlpha(
+      (lineRef.current as unknown as { material?: THREE.Material & { opacity: number; transparent: boolean } } | null)
+        ?.material,
+      0.95,
+      intro.current,
+      fx.alpha
+    );
+  });
   const arrows = useMemo(() => {
     if (!def.arrows || pts.length < 2) return [];
     const out: { from: Vec3; to: Vec3 }[] = [];
@@ -760,6 +963,7 @@ function PolylineStatic({ def }: { def: Extract<ObjectDef, { type: 'polyline' }>
   return (
     <group>
       <Line
+        ref={lineRef}
         points={pts}
         color={ink(def.color, '#94a3b8')}
         lineWidth={def.width ?? 1.6}
