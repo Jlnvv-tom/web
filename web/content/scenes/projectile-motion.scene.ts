@@ -85,9 +85,9 @@ export const projectileMotionScene: SceneSpec = {
     { type: 'particle', id: 'ball', bind: 'pos', radius: 0.85, color: '#ff8a3d', glow: true },
     { type: 'disc', id: 'land-ring', position: 'land', radius: 1.5, ring: true, color: '#22d3ee', opacity: 0.55 },
 
-    { type: 'vector', id: 'v', bind: 'v', color: '#4ade80', scale: 0.26, maxLength: 9, label: 'v' },
-    { type: 'vector', id: 'vx', bind: 'vx', color: '#22d3ee', scale: 0.26, maxLength: 9, label: 'vₓ' },
-    { type: 'vector', id: 'vy', bind: 'vy', color: '#f59e0b', scale: 0.26, maxLength: 9, label: 'v_y' },
+    { type: 'vector', id: 'v', bind: 'v', color: '#4ade80', scale: 0.26, maxLength: 9, label: 'v', valueBind: 'speed', unit: 'm/s', digits: 1 },
+    { type: 'vector', id: 'vx', bind: 'vx', color: '#22d3ee', scale: 0.26, maxLength: 9, label: 'v_x', valueBind: 'vx', unit: 'm/s', digits: 1 },
+    { type: 'vector', id: 'vy', bind: 'vy', color: '#f59e0b', scale: 0.26, maxLength: 9, label: 'v_y', valueBind: 'vy', unit: 'm/s', digits: 1 },
 
     { type: 'vector', id: 'g', bind: 'g', color: '#ef4444', fixed: true, label: 'g' },
 

@@ -302,3 +302,33 @@ export function ink(declared: string | undefined, fallback: string, opts: InkOpt
 export function resetInkCache(): void {
   cache.clear();
 }
+
+
+/* ============================================================
+   泛光阈值（M3.5 · W3.0）
+
+   UnrealBloom 的 threshold 是**线性色空间**的亮度门限。它必须高于
+   画布底板自身的亮度，否则整块底板都会被判为"高光"，泛光 pass
+   会把它模糊后叠加回来 —— 效果就是全屏一层白纱。
+
+   实测代价（抛体场景 t=3.9s）：
+     · 42% 不透明度的青色轨迹，峰值像素从 (143,190,199) 被冲成 (222,225,226)
+       —— 相当于只剩 9% 不透明度，读数被擦掉；
+     · 历次"墨迹占比 0.3%、画面发灰"的结论，有一半是这层白纱造成的。
+
+   底板 #faf8f4 的线性亮度 ≈ 0.955、台面 #f5f1ea ≈ 0.93。
+   取 0.98 留出余量，只让真正的自发光/金属高光溢出。
+   ============================================================ */
+
+/** 相对亮度（sRGB → 线性，Rec.709 权重） */
+export function linearLuminance(hex: string): number {
+  const h = hex.replace('#', '');
+  const to = (i: number) => {
+    const c = parseInt(h.slice(i, i + 2), 16) / 255;
+    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * to(0) + 0.7152 * to(2) + 0.0722 * to(4);
+}
+
+/** 泛光阈值：必须 > 所有画布底板的亮度 */
+export const BLOOM_THRESHOLD = 0.98;

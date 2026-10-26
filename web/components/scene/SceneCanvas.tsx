@@ -6,12 +6,21 @@ import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import type { SceneSpec } from '@/engine/spec';
 import type { PlayerStoreApi } from '@/engine/store';
-import { CANVAS_BACKDROP as CANVAS_BACKDROP_LIGHT } from '@/engine/palette';
+import { BLOOM_THRESHOLD, CANVAS_BACKDROP as CANVAS_BACKDROP_LIGHT } from '@/engine/palette';
 import type { StateRef } from './objects';
 import { ObjectView } from './objects';
 import { SceneRuntime } from './SceneRuntime';
 import { LabelProjector, deriveLabels } from './labels';
 import { STAGE_DEFAULTS, StageBackdrop, StageLights, TableTop } from './Stage';
+import { getQuality } from './quality';
+import {
+  RENDER_POLICY,
+  createGovernor,
+  pushFrame,
+  setQuality,
+  type GovernorState,
+  type Quality,
+} from '@/engine/perf';
 import {
   IntroContext,
   INTRO_DEFAULT_DURATION,
@@ -124,10 +133,17 @@ function PostFX({
   strength = 0.62,
   radius = 0.55,
   threshold = 0.6,
+  scale = 1,
 }: {
   strength?: number;
   radius?: number;
   threshold?: number;
+  /**
+   * 泛光缓冲相对画布的分辨率比例（M3.5 · W2）。
+   * 泛光是多 pass 的全屏模糊，代价随像素数平方增长；
+   * 0.5 等于只要 1/4 像素，观感几乎不变（它本来就是低频光晕）。
+   */
+  scale?: number;
 }) {
   const gl = useThree((s) => s.gl);
   const scene = useThree((s) => s.scene);
@@ -146,8 +162,11 @@ function PostFX({
   }, [gl, scene, camera]);
 
   useEffect(() => {
-    composer.setSize(size.width, size.height);
-  }, [composer, size.width, size.height]);
+    // 半分辨率：composer 的渲染目标降到 50%，OutputPass 会贴回全屏。
+    // 顺序不能反：setPixelRatio 内部会用上次的 size 重算，必须在 setSize 之前。
+    composer.setPixelRatio(gl.getPixelRatio());
+    composer.setSize(size.width * scale, size.height * scale);
+  }, [composer, size.width, size.height, scale, gl]);
 
   // priority > 0 会接管渲染循环，R3F 的自动渲染随之关闭
   useFrame((_, dt) => {
@@ -179,10 +198,12 @@ function getDustTexture() {
   return dustTex;
 }
 
-const DUST_COUNT = 700;
-
 /**
- * 漂浮尘埃。
+ * 漂浮尘埃（M3.5 · W1.2：CPU 逐帧 → GPU 着色器）
+ *
+ * 旧实现每帧在 JS 里遍历 700 个粒子、改 position 数组、整块上传：
+ * 60fps × 8400 字节 = 每秒 500KB 无谓上传，而且这些粒子只是"光里的灰尘"，
+ * 根本不参与任何物理量。现在漂移写进顶点着色器，每帧只更新一个 `uTime` uniform。
  *
  * `size` 必须随场景尺度缩放：屏幕上的视觉大小 ∝ size / 相机距离，
  * 所以 size 与相机距离成正比时，"尘埃有多大"在所有场景里是一致的。
@@ -190,12 +211,14 @@ const DUST_COUNT = 700;
  * 变成糊满全屏的散景圆斑，把主体完全盖住——这就是典型的"看起来像 bug 的默认值"。
  */
 function SceneDust({
+  count = 700,
   spread = 90,
   size = 0.42,
   color = '#8fd8f0',
   opacity = 0.34,
   additive = true,
 }: {
+  count?: number;
   spread?: number;
   size?: number;
   color?: string;
@@ -203,52 +226,164 @@ function SceneDust({
   /** 深色底用叠加（亮点），浅色底用普通混合（暗点） */
   additive?: boolean;
 }) {
-  const points = useRef<THREE.Points>(null);
+  const uTime = useMemo(() => ({ value: 0 }), []);
 
-  const { positions, speeds } = useMemo(() => {
-    const pos = new Float32Array(DUST_COUNT * 3);
-    const sp = new Float32Array(DUST_COUNT);
-    for (let i = 0; i < DUST_COUNT; i++) {
+  const geom = useMemo(() => {
+    const g = new THREE.BufferGeometry();
+    const pos = new Float32Array(count * 3);
+    const speed = new Float32Array(count);
+    for (let i = 0; i < count; i++) {
       pos[i * 3] = (Math.random() - 0.5) * spread;
       pos[i * 3 + 1] = (Math.random() - 0.5) * spread * 0.6;
       pos[i * 3 + 2] = (Math.random() - 0.5) * spread;
-      sp[i] = 0.15 + Math.random() * 0.5;
+      speed[i] = 0.15 + Math.random() * 0.5;
     }
-    return { positions: pos, speeds: sp };
-  }, [spread]);
+    g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    g.setAttribute('aSpeed', new THREE.BufferAttribute(speed, 1));
+    // 位置每帧在着色器里变，包围球没意义
+    g.boundingSphere = new THREE.Sphere(new THREE.Vector3(), spread);
+    return g;
+  }, [count, spread]);
+
+  const material = useMemo(() => {
+    const m = new THREE.PointsMaterial({
+      size,
+      map: getDustTexture(),
+      color: new THREE.Color(color),
+      transparent: true,
+      opacity,
+      depthWrite: false,
+      blending: additive ? THREE.AdditiveBlending : THREE.NormalBlending,
+      sizeAttenuation: true,
+    });
+    m.onBeforeCompile = (shader) => {
+      shader.uniforms.uTime = uTime;
+      shader.uniforms.uSpread = { value: spread };
+      shader.vertexShader =
+        'uniform float uTime;\nuniform float uSpread;\nattribute float aSpeed;\n' +
+        shader.vertexShader.replace(
+          '#include <begin_vertex>',
+          [
+            'vec3 transformed = vec3( position );',
+            // 与原 CPU 版同口径：y 在 ±0.3·spread 之间循环上升
+            'float span = uSpread * 0.6;',
+            'transformed.y = mod( position.y + uTime * aSpeed + span * 0.5, span ) - span * 0.5;',
+            // 缓慢横移（原来是每帧 +0.004，帧率相关；这里改成有界振荡）
+            'transformed.x += sin( uTime * 0.45 + aSpeed * 37.0 ) * 0.25;',
+          ].join('\n')
+        );
+    };
+    // 不同 material 共用同一份着色器源码，缓存键要显式区分
+    m.customProgramCacheKey = () => 'scene-dust-v1';
+    return m;
+  }, [size, color, opacity, additive, spread, uTime]);
+
+  useEffect(() => () => geom.dispose(), [geom]);
+  useEffect(() => () => material.dispose(), [material]);
 
   useFrame((_, dt) => {
-    const p = points.current;
-    if (!p) return;
-    const arr = p.geometry.attributes.position as THREE.BufferAttribute;
-    const a = arr.array as Float32Array;
-    const step = Math.min(dt, 0.05);
-    for (let i = 0; i < DUST_COUNT; i++) {
-      a[i * 3 + 1] += speeds[i]! * step;
-      // 缓慢横移，制造悬浮感
-      a[i * 3] += Math.sin(a[i * 3 + 1] * 0.3 + i) * 0.004;
-      if (a[i * 3 + 1] > spread * 0.3) a[i * 3 + 1] = -spread * 0.3;
-    }
-    arr.needsUpdate = true;
+    uTime.value += Math.min(dt, 0.05);
   });
 
-  return (
-    <points ref={points} frustumCulled={false}>
-      <bufferGeometry>
-        <bufferAttribute attach="attributes-position" args={[positions, 3]} />
-      </bufferGeometry>
-      <pointsMaterial
-        size={size}
-        map={getDustTexture()}
-        color={color}
-        transparent
-        opacity={opacity}
-        depthWrite={false}
-        blending={additive ? THREE.AdditiveBlending : THREE.NormalBlending}
-        sizeAttenuation
-      />
-    </points>
-  );
+  return <points geometry={geom} material={material} frustumCulled={false} />;
+}
+
+/* ============================================================
+   压暗下限（M3.5 · W3.0）
+   ============================================================ */
+
+/**
+ * "聚焦某一步"时，其余物体压到多暗。
+ *
+ * 旧值 0.14 是照深色底调的：深底上 0.14 的线还看得出轮廓。
+ * 近白底上同样的 0.14 等于把物理量擦掉——实测抛体场景 t=3.9s（第 0 步只高亮 v），
+ * 整条轨迹、vₓ、v_y、地面网格全变成"灰纸上的水痕"，而唯一高亮的 v
+ * 只有 2px 宽。10 秒测试看到的就是"没内容"。
+ *
+ * 按图元类型给不同下限，而不是按场景 id 特判（宪法第六条）：
+ * - 结构线（网格/轴）：0.16，本来就该退到背景里；
+ * - 物理量（轨迹/矢量/读数相关）：0.42，退一档但仍可读。
+ */
+const DIM_FLOOR: Record<string, number> = {
+  default: 0.42,
+  grid: 0.16,
+  axis: 0.2,
+};
+
+/* ============================================================
+   画质分档的两个执行器（M3.5 · W2）
+   ============================================================ */
+
+/**
+ * 帧率探针：把真实帧间隔喂给长官僚，档位变化时回调。
+ *
+ * 放在 Canvas 内部是因为 `useFrame` 的 delta 才是"这台机器此刻跑一格要多久"；
+ * 放在外面只能用 rAF，拿不到 three 的渲染耗时占比。
+ */
+function FrameProbe({ governor, onChange }: { governor: GovernorState; onChange: (q: Quality) => void }) {
+  /** 上一次帧之前页面是否被隐藏过（切标签页/锁屏）——只有这种大帧才该被丢弃 */
+  const wasHidden = useRef(false);
+
+  useEffect(() => {
+    const onVis = () => {
+      if (document.visibilityState === 'hidden') wasHidden.current = true;
+    };
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
+  }, []);
+
+  useFrame((_, dt) => {
+    const gap = wasHidden.current;
+    wasHidden.current = false;
+    if (pushFrame(governor, dt * 1000, gap)) onChange(governor.quality);
+  });
+  return null;
+}
+
+/**
+ * 阴影档位执行器。
+ *
+ * 为什么不直接改 `<Canvas shadows>`：R3F 的 shadows 只在建上下文时生效，
+ * 运行中改 prop 不会重建 shadow map。这里直接操作 renderer 与灯的 shadow，
+ * 并且**在开关翻转时把全场材质标脏**——`shadowMapEnabled` 在 program 缓存键里，
+ * 不标脏会留下仍在采样旧阴影贴图的 shader（画面会出现一块块死黑）。
+ */
+function ShadowRig({ enabled, size }: { enabled: boolean; size: 1024 | 512 | 0 }) {
+  const gl = useThree((s) => s.gl);
+  const scene = useThree((s) => s.scene);
+
+  const last = useRef<{ enabled: boolean; size: number } | null>(null);
+
+  useEffect(() => {
+    // 值没变就什么都不做：挂载时无条件标脏会让每个材质再编译一次，
+    // 实测 buoyancy（玻璃透射 + 阴影）因此多出约 3 秒的"每帧 33ms"。
+    if (last.current && last.current.enabled === enabled && last.current.size === size) return;
+    last.current = { enabled, size };
+
+    gl.shadowMap.enabled = enabled;
+    // three 0.186 起 PCFSoftShadowMap 已被移除（设置它会打印弃用警告并回退），
+    // 所以三档只区分**贴图尺寸**，不区分滤波类型。
+    if (enabled) gl.shadowMap.type = THREE.PCFShadowMap;
+    scene.traverse((o) => {
+      const light = o as THREE.Light & { shadow?: THREE.LightShadow };
+      if (light.isLight && light.shadow) {
+        const sh = light.shadow;
+        if (size > 0 && sh.mapSize.width !== size) {
+          sh.mapSize.set(size, size);
+          sh.map?.dispose();
+          // three 在 map === null 且 needsUpdate 时会重新申请贴图
+          sh.map = null;
+        }
+        sh.needsUpdate = true;
+      }
+      const m = (o as THREE.Mesh).material;
+      if (m) {
+        for (const mat of Array.isArray(m) ? m : [m]) mat.needsUpdate = true;
+      }
+    });
+  }, [enabled, size, gl, scene]);
+
+  return null;
 }
 
 /* ============================================================
@@ -262,6 +397,7 @@ function HighlightGroup({
   pulse,
   squash = 0.07,
   dimGrace = 0,
+  dimFloor = DIM_FLOOR.default,
 }: {
   highlighted: boolean;
   active: boolean;
@@ -273,6 +409,8 @@ function HighlightGroup({
   squash?: number;
   /** 压暗宽限（秒）。Infinity = 跟随 intro 状态；0 = 即时压暗（旧路径） */
   dimGrace?: number;
+  /** 压暗后的不透明度下限（按图元类型给，见 DIM_FLOOR） */
+  dimFloor?: number;
 }) {
   const ref = useRef<THREE.Group>(null);
   const gl = useThree((s) => s.gl);
@@ -361,6 +499,36 @@ function HighlightGroup({
   };
 
   /**
+   * 材质清单缓存（M3.5 · W1.5）
+   *
+   * 旧实现每次调用都 `traverse` 整棵子树，并且**每帧**把每个材质 `needsUpdate = true`。
+   * 后者很贵：`needsUpdate` 会递增 material.version，渲染器随即重新走一遍
+   * program 缓存判定——0.35s 的压暗淡入里，每帧、每个材质都来一次。
+   *
+   * 现在：挂载时遍历一次收集材质；透明度照旧逐帧写；
+   * `needsUpdate` 只在 `transparent` **真的翻转**时置一次（它影响混合与排序）。
+   */
+  const mats = useRef<(THREE.MeshStandardMaterial & { userData: Record<string, unknown> })[]>([]);
+  useLayoutEffect(() => {
+    const g = ref.current;
+    if (!g) return;
+    const list: typeof mats.current = [];
+    g.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      if (!mesh.isMesh || !mesh.material) return;
+      const arr = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+      for (const m of arr) {
+        const mat = m as THREE.MeshStandardMaterial & { userData: Record<string, unknown> };
+        if (!mat.userData._orig) {
+          mat.userData._orig = { op: mat.opacity, tr: mat.transparent };
+        }
+        list.push(mat);
+      }
+    });
+    mats.current = list;
+  }, []);
+
+  /**
    * 按混合系数写入压暗态：p=0 全亮（不压暗），p=1 完全压暗（opacity 0.14）。
    *
    * `__dim` 标记给 applyIntroAlpha 用（"收尾要还原到压暗值而不是基准值"）。
@@ -368,30 +536,23 @@ function HighlightGroup({
    * 演出结束后才被写上，min(__dim) 分支保留为防御。
    */
   const applyDimState = (p: number) => {
-    const g = ref.current;
-    if (!g) return;
-    g.traverse((o) => {
-      const mesh = o as THREE.Mesh;
-      if (!mesh.isMesh || !mesh.material) return;
-      const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-      for (const m of mats) {
-        const mat = m as THREE.MeshStandardMaterial;
-        if (!mat.userData._orig) {
-          mat.userData._orig = { op: mat.opacity, tr: mat.transparent };
-        }
-        if (active && !highlighted && p > 0) {
-          const dimOp = Math.min(mat.userData._orig.op, 0.14);
-          mat.userData.__dim = dimOp;
-          mat.transparent = true;
-          mat.opacity = mat.userData._orig.op + (dimOp - mat.userData._orig.op) * p;
-        } else {
-          delete mat.userData.__dim;
-          mat.transparent = mat.userData._orig.tr;
-          mat.opacity = mat.userData._orig.op;
-        }
+    const dimming = active && !highlighted && p > 0;
+    for (const mat of mats.current) {
+      const orig = mat.userData._orig as { op: number; tr: boolean };
+      if (dimming) {
+        const dimOp = Math.min(orig.op, dimFloor);
+        mat.userData.__dim = dimOp;
+        mat.opacity = orig.op + (dimOp - orig.op) * p;
+      } else {
+        delete mat.userData.__dim;
+        mat.opacity = orig.op;
+      }
+      const wantTr = dimming ? true : orig.tr;
+      if (mat.transparent !== wantTr) {
+        mat.transparent = wantTr;
         mat.needsUpdate = true;
       }
-    });
+    }
   };
 
   /**
@@ -493,6 +654,7 @@ function SceneObjects({
                 ? 0
                 : INTRO_DEFAULT_DURATION
           }
+          dimFloor={DIM_FLOOR[def.type] ?? DIM_FLOOR.default}
           // 只有场景声明的"主角"对参数变化做挤压，其余物体保持静止
           pulse={
             def.id === spec.decor?.subject ? () => store.getState().paramPulse.n : undefined
@@ -551,15 +713,33 @@ export function SceneCanvas({
   const labelsVisible = store((s) => s.labelsVisible);
   const labels = useMemo(() => deriveLabels(spec), [spec]);
 
-  // 窄屏（手机）关闭泛光：GPU 预算优先给帧率，画面靠氛围层补
-  const [bloom, setBloom] = useState(() =>
-    typeof window === 'undefined' ? true : window.innerWidth >= 700
+  /* ---------- 画质：静态分档起步，运行时长官接管（M3.5 · W2） ---------- */
+  const governor = useRef<GovernorState | null>(null);
+  if (!governor.current) {
+    const seeded = typeof window === 'undefined' ? 'high' : getQuality();
+    governor.current = createGovernor(seeded);
+  }
+  const [quality, setQ] = useState<Quality>(governor.current.quality);
+  const policy = RENDER_POLICY[quality];
+
+  /** 降档提示只弹一次（用户点了"保持"或"恢复"就不再打扰） */
+  const [notice, setNotice] = useState<Quality | null>(null);
+
+  /** `?nofx=1` 关掉后处理，用来分辨"颜色不对"是材质问题还是泛光把背景当高光 */
+  const [fxOff] = useState(
+    () => typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('nofx')
   );
+
   useEffect(() => {
-    const onResize = () => setBloom(window.innerWidth >= 700);
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, []);
+    document.documentElement.dataset.quality = quality;
+  }, [quality]);
+
+  const applyQuality = (q: Quality, lock = false) => {
+    if (!governor.current) return;
+    setQuality(governor.current, q, lock);
+    setQ(q);
+    setNotice(null);
+  };
 
   /**
    * 入场转场（M3 · W3）。
@@ -596,9 +776,9 @@ export function SceneCanvas({
       }
     >
       <Canvas
-        dpr={[1, 2]}
+        dpr={policy.dpr}
         frameloop="always"
-        shadows={shadowsOn ? 'soft' : false}
+        shadows={shadowsOn}
         camera={{
           position: spec.camera.position,
           fov: spec.camera.fov ?? 45,
@@ -606,17 +786,32 @@ export function SceneCanvas({
           far: 800,
         }}
         gl={{
-          antialias: true,
+          // 抗锯齿是建上下文参数，运行中改不了（改了要重建 context），所以只读一次
+          antialias: RENDER_POLICY[governor.current.quality].antialias,
           alpha: true,
           powerPreference: 'high-performance',
-          preserveDrawingBuffer: true,
+          // 关掉：没有任何代码读 drawingBuffer（全仓无 toDataURL），
+          // 开着等于每帧让驱动多存一份全屏像素。移动端这是实打实的带宽。
+          preserveDrawingBuffer: false,
         }}
-        onCreated={({ gl }) => {
+        onCreated={({ gl, scene, camera }) => {
           gl.toneMapping = THREE.ACESFilmicToneMapping;
           // 浅色模式下整体曝光要压一点：白底已经很亮，
           // 再按深色模式的 1.15 曝光，台面与物体会一起糊成一片白。
           gl.toneMappingExposure = staged ? 0.7 : 0.78;
           gl.outputColorSpace = THREE.SRGBColorSpace;
+
+          // `?diag=1`：把渲染器统计暴露给 scripts/diag_fps.py。
+          // 只在这个参数下挂，普通用户拿不到任何全局句柄。
+          if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('diag')) {
+            (window as unknown as Record<string, unknown>).__p3d = {
+              gl,
+              scene,
+              camera,
+              governor: () => governor.current,
+              policy: () => RENDER_POLICY[governor.current!.quality],
+            };
+          }
         }}
       >
         {/* 浅色模式下**所有**场景都要有画布底板。
@@ -645,22 +840,44 @@ export function SceneCanvas({
         /> : null}
         {/* 尘埃：浅色下改用普通混合的暗色微粒。
             原来是叠加混合的亮点，在白底上等于不存在；换成暗点才像"光里的灰尘" */}
-        <SceneDust
-          spread={Math.min(90, Math.max(6, camDist * 1.6))}
-          size={Math.min(2.2, Math.max(0.012, camDist * 0.035))}
-          color={staged ? '#8a7a63' : '#9a8f80'}
-          opacity={staged ? 0.2 : 0.22}
-          additive={false}
-        />
-        {bloom ? (
-          <PostFX
-            // 泛光阈值大幅提高：白底下低阈值 bloom 会把整块台面镀成一片白雾。
-            // 现在只让真正的高光（金属反光、发光体）溢出。
-            strength={staged ? 0.1 : 0.22}
-            threshold={staged ? 0.94 : 0.88}
-            radius={staged ? 0.3 : 0.4}
+        {policy.dust > 0 ? (
+          <SceneDust
+            count={policy.dust}
+            spread={Math.min(90, Math.max(6, camDist * 1.6))}
+            size={Math.min(2.2, Math.max(0.012, camDist * 0.035))}
+            color={staged ? '#8a7a63' : '#9a8f80'}
+            opacity={staged ? 0.2 : 0.22}
+            additive={false}
           />
         ) : null}
+        {policy.bloom !== 'off' && !fxOff ? (
+          <PostFX
+            /**
+             * 阈值的硬约束：**必须高于画布底板自身的亮度**（M3.5 · W3.0 实测）
+             *
+             * 底板 #faf8f4 的线性亮度约 0.955、台面 #f5f1ea 约 0.93。
+             * 旧阈值 0.88 / 0.94 都在底板之下，于是整个背景被泛光 pass 当成高光，
+             * 全屏叠了一层白纱：实测抛体场景轨迹的峰值像素从 (143,190,199)
+             * 被冲成 (222,225,226)（相当于 42% 不透明度的线只显示出 9%）。
+             * 这不是"颜色不好看"，是**读数被擦掉**——而"墨迹占比 0.3%"这个
+             * 反复出现的老结论，有一半是这层白纱造成的。
+             *
+             * 现在阈值抬到底板之上，只让真正的高光（金属反光、发光体）溢出。
+             */
+            strength={staged ? 0.1 : 0.2}
+            threshold={BLOOM_THRESHOLD}
+            radius={staged ? 0.3 : 0.4}
+            scale={policy.bloom === 'half' ? 0.5 : 1}
+          />
+        ) : null}
+        <ShadowRig enabled={shadowsOn && policy.shadowMap > 0} size={policy.shadowMap} />
+        <FrameProbe
+          governor={governor.current}
+          onChange={(q) => {
+            setQ(q);
+            setNotice(q);
+          }}
+        />
         <SceneRuntime spec={spec} store={store} stateRef={stateRef} />
         <SceneObjects spec={spec} store={store} stateRef={stateRef} hideGrid={staged} />
         <LabelProjector labels={labels} stateRef={stateRef} host={labelHost} visible={labelsVisible} />
@@ -690,6 +907,32 @@ export function SceneCanvas({
             'radial-gradient(ellipse at 50% 44%, rgba(0,0,0,0) 70%, rgba(28,25,23,0.07) 92%, rgba(28,25,23,0.14) 100%)',
         }}
       />
+
+      {/* 降档提示（M3.5 · W2.3）：只弹一次，且必须给"改回来"的出口。
+          自动降档如果不告诉用户，看起来就是"我什么都没干，画面变糊了"。 */}
+      {notice ? (
+        <div
+          role="status"
+          data-quality-notice={notice}
+          className="absolute bottom-3 right-3 z-10 flex items-center gap-2 rounded-xl border border-stone-900/12 bg-white/95 px-3 py-2 text-[11px] text-stone-700 shadow-sm backdrop-blur"
+        >
+          <span>设备渲染偏慢，已切到流畅模式</span>
+          <button
+            type="button"
+            onClick={() => applyQuality(notice, true)}
+            className="rounded-md border border-stone-900/12 px-2 py-[3px] text-[10.5px] text-stone-600 transition hover:text-stone-900"
+          >
+            保持
+          </button>
+          <button
+            type="button"
+            onClick={() => applyQuality('high', true)}
+            className="rounded-md border border-cyan-700/30 bg-cyan-600/10 px-2 py-[3px] text-[10.5px] font-medium text-cyan-800 transition hover:bg-cyan-600/16"
+          >
+            恢复清晰
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }

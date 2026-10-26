@@ -38,11 +38,24 @@ describe('player store', () => {
     expect(s.params[spec.params[0]!.key]).toBe(3);
   });
 
-  it('滑块 setParam 也会重置时间轴', () => {
+  it('滑块 setParam **不**重置时间轴（M3.5 · W4.1 行为反转）', () => {
     store.getState().pushTime(9);
     store.getState().setParam(spec.params[0]!.key, 2);
-    expect(store.getState().seekRequest).toBe(0);
-    expect(store.getState().time).toBe(0);
+
+    const s = store.getState();
+    // 旧行为是 seekRequest=0 + time=0：拖滑块时轨迹被反复清空，
+    // 学生看不到"参数变大→轨迹变长"。现在保持当前时刻实时重算。
+    expect(s.seekRequest).toBeNull();
+    expect(s.time).toBe(9);
+    expect(s.params[spec.params[0]!.key]).toBe(2);
+  });
+
+  it('滑块 setParam 每次都给一个脉冲（主角挤压反馈的依据）', () => {
+    const before = store.getState().paramPulse.n;
+    store.getState().setParam(spec.params[0]!.key, 5);
+    store.getState().setParam(spec.params[0]!.key, 6);
+    expect(store.getState().paramPulse.n).toBe(before + 2);
+    expect(store.getState().paramPulse.key).toBe(spec.params[0]!.key);
   });
 
   it('讲解脚本应用参数不打断播放', () => {

@@ -64,18 +64,24 @@ export const createPlayerStore = (spec: SceneSpec) =>
   create<PlayerStore>((set, get) => ({
     params: defaultParams(spec.params),
     paramPulse: { n: 0, key: null },
+    /**
+     * 改参数（M3.5 · W4.1）
+     *
+     * **不再把时间轴打回 0。** 旧实现每次 input 事件都写 `seekRequest: 0`，
+     * 于是拖滑块的过程中画面被反复按回 t=0：抛体/洛伦兹/波动这些场景
+     * 的核心信息全在轨迹上，而 trail 是 `sample(0..t)` 采出来的——
+     * t 恒为 0 就等于"拖滑块时轨迹永远是空的"。
+     * 学生看到的不是"v₀ 变大→射程变远"，而是"同一颗球在起点抖"。
+     * 这与 Go/No-Go 第 2 条（平均调参 ≥3）直接冲突：不是不愿调，是调了没反馈。
+     *
+     * 现在保持当前时刻，用新参数在**同一时刻**重算：轨迹形状、矢量长度、
+     * 读数立刻跟着变；"从头看"交给播放器的重播按钮。
+     */
     setParam: (key, value) =>
-      set((s) => {
-        const next = { ...s.params, [key]: value };
-        return {
-          params: next,
-          paramPulse: { n: s.paramPulse.n + 1, key },
-          time: 0,
-          seekRequest: 0,
-          stepIndex: -1,
-          waiting: false,
-        };
-      }),
+      set((s) => ({
+        params: { ...s.params, [key]: value },
+        paramPulse: { n: s.paramPulse.n + 1, key },
+      })),
     applyParams: (patch) =>
       set((s) => ({
         params: { ...s.params, ...patch },

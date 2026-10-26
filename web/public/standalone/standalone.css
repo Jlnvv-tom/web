@@ -307,6 +307,9 @@
   .left-\[18px\] {
     left: 18px;
   }
+  .z-10 {
+    z-index: 10;
+  }
   .z-40 {
     z-index: 40;
   }
@@ -1360,6 +1363,12 @@
       background-color: color-mix(in oklab, var(--color-white) 92%, transparent);
     }
   }
+  .bg-white\/95 {
+    background-color: color-mix(in srgb, #fff 95%, transparent);
+    @supports (color: color-mix(in lab, red, red)) {
+      background-color: color-mix(in oklab, var(--color-white) 95%, transparent);
+    }
+  }
   .bg-white\/\[0\.03\] {
     background-color: color-mix(in srgb, #fff 3%, transparent);
     @supports (color: color-mix(in lab, red, red)) {
@@ -2059,6 +2068,10 @@
     --tw-shadow: 0 0 #0000;
     box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
   }
+  .shadow-sm {
+    --tw-shadow: 0 1px 3px 0 var(--tw-shadow-color, rgb(0 0 0 / 0.1)), 0 1px 2px -1px var(--tw-shadow-color, rgb(0 0 0 / 0.1));
+    box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
+  }
   .ring {
     --tw-ring-shadow: var(--tw-ring-inset,) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor);
     box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
@@ -2192,6 +2205,14 @@
     @supports (color: color-mix(in lab, red, red)) {
       .hover\:border-white\/25:hover {
         border-color: color-mix(in oklab, var(--color-white) 25%, transparent);
+      }
+    }
+    .hover\:bg-cyan-600\/16:hover {
+      background-color: color-mix(in srgb, oklch(60.9% 0.126 221.723) 16%, transparent);
+    }
+    @supports (color: color-mix(in lab, red, red)) {
+      .hover\:bg-cyan-600\/16:hover {
+        background-color: color-mix(in oklab, var(--color-cyan-600) 16%, transparent);
       }
     }
     .hover\:bg-cyan-600\/\[0\.05\]:hover {

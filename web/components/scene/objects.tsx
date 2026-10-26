@@ -8,6 +8,7 @@ import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.j
 import type { ObjectDef, SceneState } from '@/engine/spec';
 import type { Vec3 } from '@/engine/vec';
 import { Arrow, StaticArrow } from './Arrow';
+import { FatLine } from './FatLine';
 import { ink } from '@/engine/palette';
 import { needsTransmission, resolveMaterial } from '@/engine/materials';
 import { getQuality } from './quality';
@@ -107,63 +108,24 @@ function DynLine({
   opacity?: number;
   depthTest?: boolean;
 }) {
-  const ref = useRef<never>(null);
-  const buf = useMemo(() => new Float32Array(MAX_POINTS * 3), []);
   const intro = useIntro();
 
-  useFrame(() => {
-    const line = ref.current as unknown as {
-      visible: boolean;
-      geometry: { setPositions: (a: Float32Array) => void; setDrawRange?: (s: number, c: number) => void };
-      computeLineDistances?: () => void;
-      material?: THREE.Material & { opacity: number; transparent: boolean };
-    } | null;
-    if (!line) return;
-
-    // 开场演出（W4）：线条是稀疏场景的主体，淡入优先于一切
-    const fx = introFx(intro.current);
-    applyIntroAlpha(
-      line.material as (THREE.Material & { opacity: number; transparent: boolean }) | undefined,
-      opacity,
-      intro.current,
-      fx.alpha
-    );
-
-    const pts = getPoints();
-    if (!pts || pts.length < 2) {
-      line.visible = false;
-      return;
-    }
-    line.visible = true;
-
-    const n = Math.min(pts.length, MAX_POINTS);
-    const last = pts[n - 1]!;
-    for (let i = 0; i < MAX_POINTS; i++) {
-      const p = i < n ? pts[i]! : last;
-      buf[i * 3] = p[0];
-      buf[i * 3 + 1] = p[1];
-      buf[i * 3 + 2] = p[2];
-    }
-    line.geometry.setPositions(buf);
-    if (dashed) line.computeLineDistances?.();
-  });
-
+  // 几何与缓冲由 FatLine 一次分配、逐帧原地写（W1.4）。
+  // 旧实现每帧 `geometry.setPositions()` 会新建 InstancedInterleavedBuffer，
+  // 而 three 丢弃 attribute 时不会释放对应 WebGL 缓冲 —— 跑久了显存只增不减。
   return (
-    <Line
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ref={ref as any}
-      points={[
-        [0, 0, 0],
-        [0, 0, 0],
-      ]}
+    <FatLine
+      getPoints={getPoints}
+      maxPoints={MAX_POINTS}
       color={color}
-      lineWidth={width}
+      width={width}
       dashed={dashed}
-      dashSize={0.18}
-      gapSize={0.12}
-      transparent={opacity < 1}
       opacity={opacity}
       depthTest={depthTest}
+      onMaterial={(mat) => {
+        const fx = introFx(intro.current);
+        applyIntroAlpha(mat as THREE.Material & { opacity: number; transparent: boolean }, opacity, intro.current, fx.alpha);
+      }}
     />
   );
 }

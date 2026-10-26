@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import type { SceneSpec, SceneState, ScriptStep } from '@/engine/spec';
 import { sceneDuration } from '@/engine/spec';
 import { solveAt } from '@/engine/solvers';
-import type { PlayerStoreApi } from '@/engine/store';
+import type { HudSnapshot, PlayerStoreApi } from '@/engine/store';
 import type { StateRef } from './objects';
 import { emptyState } from '@/engine/spec';
 
@@ -29,7 +29,15 @@ export function SceneRuntime({
   const tRef = useRef(0);
   const lastPush = useRef(0);
   const stepRef = useRef(-1);
-  const seriesRef = useRef<Record<string, number[]>>({});
+  /**
+   * HUD 快照复用（M3.5 · W1.3）
+   *
+   * 旧实现每 55ms 都会 `{...scalars}` + `{...meta}` + `Object.fromEntries(...)` +
+   * 每条序列 `slice(-120)`：18 次/秒的短命对象与数组。数字本身没多少，
+   * 但它们会持续制造新生代垃圾，在低端机上和渲染抢 GC 时间。
+   * 现在三个容器建一次，逐键覆盖；数组原地追加 + 溢出时 shift。
+   */
+  const snapRef = useRef<HudSnapshot>({ scalars: {}, meta: {}, series: {} });
   const camGoal = useRef<{ pos: THREE.Vector3; target: THREE.Vector3 } | null>(null);
   const camLerp = useRef(0);
   const camFrom = useRef<{ pos: THREE.Vector3; target: THREE.Vector3 } | null>(null);
@@ -73,7 +81,7 @@ export function SceneRuntime({
     const seek = st.consumeSeek();
     if (seek !== null) {
       tRef.current = seek;
-      seriesRef.current = {};
+      for (const k in snapRef.current.series) snapRef.current.series[k]!.length = 0;
       stepRef.current = -1;
     }
 
@@ -85,6 +93,9 @@ export function SceneRuntime({
         st.setPlaying(false);
       }
     }
+    // 改参数后 duration 可能变短（演示脚本把 g 调大、把 v0 调小）。
+    // 不钳住会让时间轴停在"不存在的一帧"，读数与回放进度对不上。
+    if (tRef.current > duration) tRef.current = duration;
     const t = tRef.current;
 
     /* --- 求解 --- */
@@ -123,24 +134,24 @@ export function SceneRuntime({
     }
 
     /* --- 图表序列 --- */
+    const snap = snapRef.current;
     for (const k of seriesKeys) {
-      const arr = (seriesRef.current[k] ??= []);
+      const arr = (snap.series[k] ??= []);
       const v = state.scalars[k];
       if (typeof v === 'number' && Number.isFinite(v)) {
         arr.push(v);
-        if (arr.length > 180) arr.shift();
+        if (arr.length > 120) arr.shift();
       }
     }
 
     /* --- 限频推送 UI --- */
     if (t - lastPush.current > UI_PUSH_INTERVAL || Math.abs(t - lastPush.current) > 0.5 || !st.playing) {
       lastPush.current = t;
+      for (const k in state.scalars) snap.scalars[k] = state.scalars[k]!;
+      for (const k in state.meta) snap.meta[k] = state.meta[k]!;
       st.pushTime(t);
-      st.pushHud({
-        scalars: { ...state.scalars },
-        meta: { ...state.meta },
-        series: Object.fromEntries(Object.entries(seriesRef.current).map(([k, v]) => [k, v.slice(-120)])),
-      });
+      // 外层包一层新对象：zustand 靠它判断"hud 变了"，内层三个容器复用
+      st.pushHud({ scalars: snap.scalars, meta: snap.meta, series: snap.series });
     }
   });
 

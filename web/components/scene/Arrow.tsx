@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useRef } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { Vec3 } from '@/engine/vec';
 import { ink } from '@/engine/palette';
@@ -21,16 +21,27 @@ export function Arrow({
   getVector,
   // 过 ink()：场景写的是深色主题语义色，渲染层负责适配当前底板
   color = ink(undefined, '#22d3ee'),
-  radius = 0.022,
+  radius,
+  radiusPx = 2.4,
   opacity = 1,
   fixedLength,
   maxLength,
-  emissive = 0.35,
+  emissive = 0.5,
 }: {
   getOrigin: () => Vec3Like;
   getVector: () => Vec3Like;
   color?: string;
+  /** 显式指定世界单位粗细（覆盖屏幕恒定口径） */
   radius?: number;
+  /**
+   * 屏幕恒定粗细：箭杆半径的目标像素数（M3.5 · W3.1）
+   *
+   * 为什么不能写死世界单位：场景尺度差 10 倍以上（电容器 0.3 m、电场 24 m）。
+   * 原来固定 `radius = 0.022`，在 42 世界单位的抛体场景里 = 0.68px 半径，
+   * 直径 1.4px —— 截图上是"根本不存在的箭头"，学生只看到三个字母标签。
+   * 现在按"箭头到相机的距离 + 视口高度"实时换算，任何缩放都是 2–3px。
+   */
+  radiusPx?: number;
   opacity?: number;
   /** 固定长度（只示意方向时用） */
   fixedLength?: number;
@@ -41,6 +52,10 @@ export function Arrow({
   const shaft = useRef<THREE.Mesh>(null);
   const head = useRef<THREE.Mesh>(null);
   const intro = useIntro();
+  const camera = useThree((s) => s.camera);
+  const viewport = useThree((s) => s.size);
+  // 几何按"基准半径"建一次，逐帧用 scale 换算成目标像素粗细
+  const BASE_R = 0.022;
   const tmp = useMemo(
     () => ({
       o: new THREE.Vector3(),
@@ -80,16 +95,32 @@ export function Arrow({
     const dirn = tmp.d.clone().normalize();
     tmp.q.setFromUnitVectors(UP, dirn);
 
-    const headLen = Math.min(len * 0.34, radius * 11);
+    // 屏幕恒定粗细：该箭头所在深度上"一个 CSS 像素等于多少世界单位"
+    let r = radius;
+    if (r == null) {
+      const cam = camera as THREE.PerspectiveCamera;
+      const dist = Math.max(0.01, tmp.o.distanceTo(camera.position));
+      const worldHeight = 2 * dist * Math.tan(((cam.fov ?? 45) * Math.PI) / 360);
+      const worldPerPx = worldHeight / Math.max(1, viewport.height);
+      r = radiusPx * worldPerPx;
+      // 短箭头不许变成一根大棍子：粗细不超过长度的 12%
+      r = Math.min(r, len * 0.12);
+    }
+    const k = r / BASE_R;
+
+    const headLen = Math.min(len * 0.34, r * 11);
     const shaftLen = Math.max(len - headLen, 1e-4);
 
     s.quaternion.copy(tmp.q);
     s.position.copy(tmp.o).addScaledVector(dirn, shaftLen / 2);
-    s.scale.set(1, shaftLen, 1);
+    s.scale.set(k, shaftLen, k);
 
     h.quaternion.copy(tmp.q);
     h.position.copy(tmp.o).addScaledVector(dirn, shaftLen + headLen / 2);
-    h.scale.setScalar(headLen / 0.28);
+    // 锥体的径向缩放是 k（让底圆半径 = 2.6r），轴向是 headLen/0.28。
+    // 两个因子**不能相乘**：早先把 (headLen/0.28)*k 同时给了 x/z，
+    // 结果箭头底圆被放大到 36 倍，画面里是一个盖住球的半透明大圆盘。
+    h.scale.set(k, headLen / 0.28, k);
 
     // 开场演出（W4）：淡入 + 点亮。不做缩放——箭头的位置与长度每帧由
     // getOrigin/getVector 驱动，缩放会和长度逻辑打架（v1 已知边界）。
@@ -97,36 +128,25 @@ export function Arrow({
     // 不覆盖高亮压暗、也不会把 transparent 变体留在旧 shader 上。
     const fx = introFx(intro.current);
     for (const m of [s, h]) {
-      applyIntroAlpha(m.material as THREE.MeshStandardMaterial, opacity, intro.current, fx.alpha);
-      (m.material as THREE.MeshStandardMaterial).emissiveIntensity = emissive * fx.emissive;
+      applyIntroAlpha(m.material as THREE.Material & { opacity: number; transparent: boolean }, opacity, intro.current, fx.alpha);
     }
   });
 
   return (
     <group>
+      {/* 材质：平涂（basic）而不是 PBR。
+          实测原因：箭头用 MeshStandardMaterial + 场景强光（directional 2.9）时，
+          深绿 #166534 被照到亮度 >1，再经 ACES 曝光映射直接褪成浅灰绿 ——
+          屏幕上是一根"雾里的荧光棒"，不是矢量。
+          箭头是**标注**不是实体，它需要的是一致的墨色对比度，而不是被环境光影响。
+          toneMapped=false 让颜色原样落地，白底上才有 7:1 的对比。 */}
       <mesh ref={shaft} castShadow={false}>
-        <cylinderGeometry args={[radius, radius, 1, 12]} />
-        <meshStandardMaterial
-          color={color}
-          emissive={color}
-          emissiveIntensity={emissive}
-          metalness={0.2}
-          roughness={0.45}
-          transparent={opacity < 1}
-          opacity={opacity}
-        />
+        <cylinderGeometry args={[BASE_R, BASE_R, 1, 12]} />
+        <meshBasicMaterial color={color} toneMapped={false} fog={false} transparent={opacity < 1} opacity={opacity} />
       </mesh>
       <mesh ref={head}>
-        <coneGeometry args={[radius * 2.6, 0.28, 14]} />
-        <meshStandardMaterial
-          color={color}
-          emissive={color}
-          emissiveIntensity={emissive}
-          metalness={0.2}
-          roughness={0.45}
-          transparent={opacity < 1}
-          opacity={opacity}
-        />
+        <coneGeometry args={[BASE_R * 2.6, 0.28, 14]} />
+        <meshBasicMaterial color={color} toneMapped={false} fog={false} transparent={opacity < 1} opacity={opacity} />
       </mesh>
     </group>
   );
