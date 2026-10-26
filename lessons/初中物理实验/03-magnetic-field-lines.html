@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.tailwindcss.com"></script>
+    <title>3D 物理交互教学</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" crossorigin="anonymous">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.js" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/contrib/auto-render.min.js" crossorigin="anonymous"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#0f172a;color:#e2e8f0;height:100vh;overflow:hidden}
+#viewport{flex:1;position:relative;min-height:0}
+#viewport canvas{display:block;width:100%!important;height:100%!important}
+#sidebar{width:24rem;overflow-y:auto;background:#1e293b;border-right:1px solid #334155;flex-shrink:0}
+#sidebar::-webkit-scrollbar{width:6px}
+#sidebar::-webkit-scrollbar-track{background:#1e293b}
+#sidebar::-webkit-scrollbar-thumb{background:#475569;border-radius:3px}
+.section{border-bottom:1px solid #334155;padding:1rem 1.25rem}
+.section-title{font-size:.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#64748b;margin-bottom:.75rem}
+.param-label{font-size:.875rem;color:#94a3b8;margin-bottom:.25rem}
+.param-label .katex{font-size:1em!important}
+input[type=range]{-webkit-appearance:none;width:100%;height:6px;border-radius:3px;background:#334155;outline:none;margin:.5rem 0}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#6366f1;cursor:pointer;border:2px solid #e2e8f0}
+input[type=range]::-webkit-slider-thumb:hover{background:#818cf8}
+.param-ticks{display:flex;justify-content:space-between;font-size:.7rem;color:#64748b;margin-top:.15rem}
+.readout-row{display:flex;justify-content:space-between;align-items:center;padding:.35rem .5rem;border-radius:6px;font-size:.8rem;margin-bottom:2px}
+.readout-row:hover{background:#334155}
+.readout-label{color:#94a3b8}
+.readout-label .katex{font-size:1em!important}
+.readout-value{font-family:'Courier New',monospace;font-weight:600;font-size:.9rem}
+.readout-highlight{background:rgba(45,212,191,0.12);border:1px solid rgba(45,212,191,0.25)}
+#constant-block{background:linear-gradient(135deg,#065f46,#047857);border-radius:8px;padding:.75rem;margin-top:.5rem;display:none}
+#constant-block .const-label{color:#6ee7b7;font-size:.7rem;margin-bottom:.2rem}
+#constant-block .const-value{color:#6ee7b7;font-weight:700;font-size:.85rem}
+.step-card{background:#1e293b;border:1px solid #334155;border-radius:8px;margin-bottom:.5rem;overflow:hidden;cursor:pointer;transition:border-color .2s}
+.step-card:hover{border-color:#6366f1}
+.step-card.active{border-color:#6366f1}
+.step-header{display:flex;justify-content:space-between;align-items:center;padding:.75rem 1rem;font-size:.85rem;font-weight:600;color:#e2e8f0}
+.step-body{padding:0 1rem .75rem;font-size:.8rem;color:#cbd5e1;line-height:1.6;display:none}
+.step-body .katex{font-size:1.05em!important}
+.step-body ul{list-style:disc;padding-left:1.2rem;margin:.3rem 0}
+.step-body li{margin:.15rem 0}
+.step-body p{margin:.4rem 0}
+.step-icon{color:#6366f1;font-size:.7rem;transition:transform .2s}
+.step-card.active .step-icon{transform:rotate(180deg)}
+.legend-item{display:flex;align-items:center;gap:.5rem;font-size:.75rem;color:#94a3b8;margin-bottom:4px}
+.legend-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;border:1px solid rgba(255,255,255,.1)}
+#splash{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#0f172a;z-index:10;font-size:1.1rem;color:#94a3b8}
+#controls-overlay{position:absolute;bottom:1rem;left:50%;transform:translateX(-50%);z-index:5;display:flex;gap:.5rem;pointer-events:none}
+#controls-overlay button{pointer-events:auto;background:#1e293b;border:1px solid #334155;color:#cbd5e1;padding:.35rem .75rem;border-radius:6px;font-size:.75rem;cursor:pointer;transition:all .2s}
+#controls-overlay button:hover{background:#334155;color:#e2e8f0}
+</style>
+</head>
+<body>
+
+<!-- data island -->
+<script id="lesson-data" type="application/json">{"lesson": {"language": "zh-CN", "title": "磁场与磁感线：离磁铁越远，弱得多快", "problem": "<p>红色是 N 极、蓝色是 S 极。拖动<b>距离<\/b>滑块，探针沿一条射线远离磁铁，看绿色箭头（磁感应强度 $\\vec B$）怎么缩短。<\/p><p>磁感线在<b>磁体外部从 N 极出发、回到 S 极<\/b>，是闭合曲线——它不像电场线那样有起点和终点。<\/p>", "answer": "$B=\\dfrac{\\mu_0 m}{4\\pi r^3}\\left(2\\cos\\theta\\,\\hat r+\\sin\\theta\\,\\hat\\theta\\right)$"}, "steps": [{"title": "第一步：磁感线是假想的模型", "content": "<p>磁场看不见，人为规定用一些有方向的曲线来描述它：曲线上每一点的切线方向，就是该点磁场的方向；曲线越密，磁场越强。<\/p>"}, {"title": "第二步：外部 N → S，内部 S → N", "content": "<p>磁体外部的磁感线从 N 极出来，绕回 S 极；在磁体内部又从 S 极回到 N 极，形成<b>闭合曲线<\/b>。这是磁感线与电场线最本质的区别。<\/p>"}, {"title": "第三步：距离越远，衰减极快", "content": "<p>条形磁铁可看作磁偶极子，$B \\propto 1/r^3$。距离翻一倍，磁场只剩 1/8。拖动滑块时下方 $B r^3$ 保持不变，正是这个规律的体现。<\/p>"}, {"title": "第四步：怎么描述某点的方向", "content": "<p>规定在磁场中某点放一枚小磁针，N 极所指的方向就是该点磁场方向。探针处的绿色箭头就是这个方向。<\/p>"}], "board3d": {"view": {"cameraPos": [7, 5, 8], "target": [0, 0, 0], "showGrid": true, "showAxes": true}, "param": {"name": "r", "label": "探针到磁铁中心的距离 $r$ (m)", "min": 1, "max": 6, "step": 0.1, "value": 2, "unit": "m"}, "scalars": [{"name": "th", "expr": "60"}, {"name": "rad", "expr": "th*PI/180"}, {"name": "C", "expr": "1/pow(r,3)"}, {"name": "Br", "expr": "2*C*cos(rad)"}, {"name": "Bth", "expr": "C*sin(rad)"}, {"name": "Bx", "expr": "Br*sin(rad)+Bth*cos(rad)"}, {"name": "Bz", "expr": "Br*cos(rad)-Bth*sin(rad)"}, {"name": "Bmag", "expr": "sqrt(Bx*Bx+Bz*Bz)"}, {"name": "Br3", "expr": "Bmag*pow(r,3)"}, {"name": "px", "expr": "r*sin(rad)"}, {"name": "pz", "expr": "r*cos(rad)"}, {"name": "ru", "expr": "1.3*pow(sin(u*PI/180),2)"}, {"name": "fx", "expr": "ru*sin(u*PI/180)"}, {"name": "fz", "expr": "ru*cos(u*PI/180)"}], "objects": [{"id": "north", "type": "sphere", "position": [0, 0, 1.2], "radius": 0.42, "color": "#f87171", "label": "N 极"}, {"id": "south", "type": "sphere", "position": [0, 0, -1.2], "radius": 0.42, "color": "#60a5fa", "label": "S 极"}, {"id": "fieldline", "type": "curve", "expr": {"x": "fx", "y": "0", "z": "fz"}, "tMin": 8, "tMax": 172, "segments": 90, "color": "#a78bfa"}, {"id": "probe", "type": "sphere", "position": ["px", 0, "pz"], "radius": 0.1, "color": "#fde047"}, {"id": "Barrow", "type": "arrow", "from": ["px", 0, "pz"], "to": ["px+Bx*2.2", 0, "pz+Bz*2.2"], "color": "#34d399", "headLength": 0.26, "headWidth": 0.13}], "readouts": [{"id": "r", "label": "距离 $r$", "type": "expr", "expr": "r", "digits": 2, "unit": "m"}, {"id": "Bmag", "label": "磁感应强度 $B$", "type": "expr", "expr": "Bmag", "digits": 3, "highlight": true}, {"id": "th", "label": "与磁轴的夹角 $\\theta$", "type": "expr", "expr": "th", "digits": 0, "unit": "°"}, {"id": "Br3", "label": "$B r^3$", "type": "expr", "expr": "Br3", "digits": 3, "unit": "（恒定）"}], "constant": {"of": "Br3", "label": "$B r^{3}=\\text{常数}$（偶极场按 $1/r^3$ 衰减）"}, "legend": [{"color": "#f87171", "text": "N 极"}, {"color": "#60a5fa", "text": "S 极"}, {"color": "#34d399", "text": "$\\vec B$ 探针处磁场"}, {"color": "#a78bfa", "text": "一条磁感线"}, {"color": "#fde047", "text": "探针"}]}}</script>
+
+<!-- main layout -->
+<div style="display:flex;height:100vh">
+  <!-- sidebar -->
+  <div id="sidebar">
+    <div class="section">
+      <h2 class="text-base font-bold text-indigo-400" id="problem-title"></h2>
+      <div class="mt-2 text-sm text-slate-300 leading-relaxed" id="problem-text"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">动态控制台</div>
+      <div class="param-label" id="param-label"></div>
+      <input type="range" id="param-slider">
+      <div class="param-ticks" id="param-ticks"></div>
+      <div id="readouts" class="mt-3"></div>
+      <div id="constant-block">
+        <div class="const-label">拖动滑块，下方数值恒为定值</div>
+        <div class="const-value" id="const-value"></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">图例</div>
+      <div id="legend"></div>
+    </div>
+  </div>
+
+  <!-- 3D viewport -->
+  <div id="viewport">
+    <div id="splash">加载 Three.js 中...</div>
+    <div id="controls-overlay">
+      <button onclick="resetCamera()">重置视角</button>
+      <button onclick="toggleAutoRotate()">自动旋转</button>
+    </div>
+  </div>
+</div>
+
+<!-- steps panel (collapsible overlay) -->
+<div id="steps-panel" style="position:fixed;bottom:0;right:0;width:28rem;max-height:50vh;background:#1e293b;border:1px solid #334155;border-radius:12px 0 0 0;z-index:20;overflow:hidden;transition:transform .3s;box-shadow:-4px 0 20px rgba(0,0,0,.4)">
+  <div id="steps-toggle" style="display:flex;justify-content:space-between;align-items:center;padding:.6rem 1rem;cursor:pointer;background:#334155;font-size:.8rem;font-weight:600;color:#e2e8f0">
+    <span>详细解析</span>
+    <span id="steps-icon" style="transition:transform .3s">▼</span>
+  </div>
+  <div id="steps-body" style="overflow-y:auto;padding:.75rem 1rem 1rem;max-height:calc(50vh - 2.5rem);display:none"></div>
+</div>
+
+<script>
+// ===== Parse lesson data =====
+const DATA = JSON.parse(document.getElementById('lesson-data').textContent);
+const L = DATA.lesson || {};
+const S = DATA.steps || [];
+const B = DATA.board3d || {};
+
+// ===== KaTeX render helper =====
+function renderMath(container){
+  if(window.renderMathInElement) renderMathInElement(container, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true}]});
+}
+
+// ===== Sidebar: problem =====
+document.getElementById('problem-title').textContent = L.title || '';
+const probDiv = document.getElementById('problem-text');
+if(L.problem){ probDiv.innerHTML = L.problem; renderMath(probDiv); }
+
+// ===== Expression engine (same as board.html) =====
+const MATHENV = {sqrt:Math.sqrt,cbrt:Math.cbrt,abs:Math.abs,sin:Math.sin,cos:Math.cos,tan:Math.tan,
+  asin:Math.asin,acos:Math.acos,atan:Math.atan,atan2:Math.atan2,exp:Math.exp,log:Math.log,
+  pow:Math.pow,min:Math.min,max:Math.max,sign:Math.sign,floor:Math.floor,ceil:Math.ceil,hypot:Math.hypot,PI:Math.PI};
+const _exprCache={};
+function evalExpr(expr, env){
+  if(typeof expr!=='string') return expr;
+  const scope=Object.assign({}, MATHENV, env);
+  const names=Object.keys(scope);
+  const key=expr+'|'+names.join(',');
+  let fn=_exprCache[key];
+  if(!fn){ try{ fn=Function(...names,'"use strict";return ('+expr.replace(/\^/g,'**')+');'); }
+           catch(e){ fn=()=>NaN; } _exprCache[key]=fn; }
+  try{ const v=fn(...names.map(n=>scope[n])); return (typeof v==='number')?v:NaN; }catch(e){ return NaN; }
+}
+const resolveVal=(v,env)=> (typeof v==='string')? evalExpr(v,env) : v;
+
+function buildEnv(pval){
+  const env={ p: pval };
+  if(B.param && B.param.name && /^[A-Za-z_$][\w$]*$/.test(B.param.name)) env[B.param.name]=pval;
+  (B.scalars||[]).forEach(s=>{ env[s.name]=evalExpr(s.expr, env); });
+  return env;
+}
+
+// ===== Readouts =====
+function fmt(v,d){
+  if(v===null||v===undefined||!isFinite(v)) return '—';
+  let s=v.toFixed(d!=null?d:2);
+  if(s==='-'+Number(0).toFixed(d)) s=Number(0).toFixed(d);
+  return s;
+}
+function computeReadouts(env){
+  const out=[];
+  (B.readouts||[]).forEach(r=>{
+    let text='—', scalar=null;
+    try{
+      if(r.type==='expr'){
+        scalar=evalExpr(r.expr, env);
+        text=fmt(scalar, r.digits!=null?r.digits:2);
+      }
+    }catch(e){ text='—'; }
+    out.push({id:r.id, label:r.label, text, scalar, highlight:!!r.highlight, color:r.color});
+  });
+  return out;
+}
+function renderReadouts(env){
+  const container=document.getElementById('readouts');
+  const ro=computeReadouts(env);
+  container.innerHTML=ro.map(r=>{
+    const hl=r.highlight?' readout-highlight':'';
+    const color=r.color?` style="color:${r.color}"`:'';
+    return `<div class="readout-row${hl}"><span class="readout-label">${r.label}</span><span class="readout-value"${color}>${r.text}</span></div>`;
+  }).join('');
+  renderMath(container);
+
+  // constant indicator
+  const cb=document.getElementById('constant-block');
+  if(B.constant){
+    const found=ro.find(x=>x.id===B.constant.of);
+    if(found && found.scalar!==null){
+      cb.style.display='block';
+      // 显示 "label = 当前值"，直观验证守恒量是否随滑块恒定
+      document.getElementById('const-value').innerHTML = B.constant.label + (found.text && found.text!=='—' ? ' = <b>'+found.text+'</b>' : '');
+      renderMath(document.getElementById('constant-block'));
+    } else { cb.style.display='none'; }
+  } else { cb.style.display='none'; }
+}
+
+// ===== Legend =====
+(function(){
+  const lg=document.getElementById('legend');
+  if(B.legend && B.legend.length){
+    lg.innerHTML=B.legend.map(x=>{
+      const color=x.color||'#6366f1';
+      return `<div class="legend-item"><div class="legend-dot" style="background:${color}"></div><span>${x.text||''}</span></div>`;
+    }).join('');
+    renderMath(lg);
+  } else { lg.innerHTML=''; }
+})();
+
+// ===== Param slider =====
+const pDef = B.param || {};
+const paramName = pDef.name || 't';
+const paramMin = pDef.min!=null ? pDef.min : 0;
+const paramMax = pDef.max!=null ? pDef.max : 1;
+const paramStep = pDef.step!=null ? pDef.step : 0.05;
+const paramDefault = pDef.value!=null ? pDef.value : paramMin;
+const paramStandard = pDef.standard!=null ? pDef.standard : paramDefault;
+const paramUnit = pDef.unit || '';
+
+const slider = document.getElementById('param-slider');
+const labelDiv = document.getElementById('param-label');
+const ticksDiv = document.getElementById('param-ticks');
+
+slider.min = paramMin;
+slider.max = paramMax;
+slider.step = paramStep;
+slider.value = paramDefault;
+
+if(pDef.label){ labelDiv.innerHTML = pDef.label; renderMath(labelDiv); }
+
+if(pDef.ticks && pDef.ticks.length>=2){
+  ticksDiv.innerHTML = pDef.ticks.map((t,i)=>`<span>${t}${i===0||i===pDef.ticks.length-1?(paramUnit||''):''}</span>`).join('');
+} else {
+  ticksDiv.innerHTML = `<span>${paramMin}${paramUnit}</span><span>${(paramMin+paramMax)/2}${paramUnit}</span><span>${paramMax}${paramUnit}</span>`;
+}
+
+// ===== Three.js setup =====
+const viewport = document.getElementById('viewport');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0f172a);
+scene.fog = new THREE.FogExp2(0x0f172a, 0.012);
+
+const camera = new THREE.PerspectiveCamera(45, viewport.clientWidth/viewport.clientHeight, 0.1, 100);
+const camPos = (B.view && B.view.cameraPos) || [5, 4, 8];
+const camTarget = (B.view && B.view.target) || [0, 0, 0];
+camera.position.set(camPos[0], camPos[1], camPos[2]);
+
+let renderer, controls;
+try {
+	renderer = new THREE.WebGLRenderer({antialias:true, failIfMajorPerformanceCaveat:false});
+	renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+	renderer.setSize(viewport.clientWidth, viewport.clientHeight);
+	renderer.shadowMap.enabled = true;
+	renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+	viewport.insertBefore(renderer.domElement, viewport.firstChild);
+	document.getElementById('splash').style.display='none';
+
+	controls = new THREE.OrbitControls(camera, renderer.domElement);
+	controls.target.set(camTarget[0], camTarget[1], camTarget[2]);
+	controls.enableDamping = true;
+	controls.dampingFactor = 0.08;
+	controls.minDistance = 1;
+	controls.maxDistance = 30;
+	controls.update();
+} catch(e) {
+	viewport.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#ef4444;font-size:18px;text-align:center;padding:20px">⚠ 3D 渲染初始化失败<br><span style="font-size:14px;color:#9ca3af;margin-top:8px">您的浏览器不支持 WebGL，请使用 Chrome/Firefox/Edge 最新版</span></div>';
+	document.getElementById('splash').style.display='none';
+}
+
+// Lights
+const ambient = new THREE.AmbientLight(0xffffff, 0.5);
+scene.add(ambient);
+const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
+dirLight.position.set(5, 10, 7);
+dirLight.castShadow = true;
+scene.add(dirLight);
+const fillLight = new THREE.DirectionalLight(0x93c5fd, 0.3);
+fillLight.position.set(-5, -3, -5);
+scene.add(fillLight);
+
+// Grid
+if(B.view && B.view.showGrid !== false){
+  const grid = new THREE.GridHelper(16, 16, 0x475569, 0x334155);
+  scene.add(grid);
+}
+// Axes
+if(B.view && B.view.showAxes !== false){
+  const axesLen = 2.5;
+  const makeAxis = (dir, color, label) => {
+    const pts = [new THREE.Vector3(0,0,0), new THREE.Vector3(dir[0]*axesLen, dir[1]*axesLen, dir[2]*axesLen)];
+    const g = new THREE.BufferGeometry().setFromPoints(pts);
+    const l = new THREE.Line(g, new THREE.LineBasicMaterial({color, linewidth:2}));
+    scene.add(l);
+  };
+  makeAxis([1,0,0], 0xf87171);
+  makeAxis([0,1,0], 0x34d399);
+  makeAxis([0,0,1], 0x60a5fa);
+}
+
+// autoRotate state
+let autoRotate = false;
+function toggleAutoRotate(){ if(!controls) return; autoRotate=!autoRotate; controls.autoRotate=autoRotate; controls.autoRotateSpeed=2; }
+function resetCamera(){
+  if(!controls) return;
+  controls.target.set(camTarget[0], camTarget[1], camTarget[2]);
+  camera.position.set(camPos[0], camPos[1], camPos[2]);
+  controls.update();
+}
+
+// ===== 3D Object system =====
+const sceneObjects = []; // Three.js objects to clear on rebuild
+
+// Color mapping
+const COLORS = {
+  curve:'#fbbf24', line:'#2dd4bf', aux:'#64748b', ptA:'#f87171', ptB:'#60a5fa',
+  point:'#94a3b8', given:'#a78bfa', fixed:'#34d399', vecA:'#f87171', vecB:'#60a5fa',
+  vec:'#fbbf24', locus:'#c084fc', area:'rgba(45,212,191,0.16)'
+};
+function col(c){ return COLORS[c] || c || '#6366f1'; }
+
+function resolvePos(pos, env){
+  if(!pos) return [0,0,0];
+  const x = resolveVal(pos[0], env);
+  const y = resolveVal(pos[1], env);
+  const z = resolveVal(pos[2]!==undefined ? pos[2] : 0, env);
+  return [x,y,z];
+}
+
+function buildScene3D(pval){
+  // Clear previous objects
+  sceneObjects.forEach(o => { scene.remove(o); if(o.geometry) o.geometry.dispose(); if(o.material) o.material.dispose(); });
+  sceneObjects.length = 0;
+
+  const env = buildEnv(pval);
+
+  // Process each object
+  (B.objects||[]).forEach(obj => {
+    try {
+      switch(obj.type){
+        case 'sphere': {
+          const pos = resolvePos(obj.position, env);
+          const radius = resolveVal(obj.radius, env) || 0.3;
+          const geo = new THREE.SphereGeometry(Math.abs(radius), 28, 28);
+          const mat = new THREE.MeshStandardMaterial({
+            color: col(obj.color) || 0xf87171,
+            roughness: 0.3,
+            metalness: 0.05
+          });
+          const mesh = new THREE.Mesh(geo, mat);
+          mesh.position.set(pos[0], pos[1], pos[2]);
+          mesh.castShadow = true;
+          scene.add(mesh);
+          sceneObjects.push(mesh);
+
+          // Outline
+          const outlineMat = new THREE.MeshBasicMaterial({
+            color: 0x334155,
+            side: THREE.BackSide,
+          });
+          const outline = new THREE.Mesh(geo.clone(), outlineMat);
+          outline.position.copy(mesh.position);
+          outline.scale.set(1.06, 1.06, 1.06);
+          scene.add(outline);
+          sceneObjects.push(outline);
+          break;
+        }
+        case 'arrow': {
+          const from = resolvePos(obj.from, env);
+          const to = resolvePos(obj.to, env);
+          const dir = new THREE.Vector3(to[0]-from[0], to[1]-from[1], to[2]-from[2]);
+          const len = dir.length();
+          if(len > 0.001){
+            dir.normalize();
+            const headLen = obj.headLength!=null ? obj.headLength : Math.min(len*0.3, 0.4);
+            const headWid = obj.headWidth!=null ? obj.headWidth : headLen*0.5;
+            const arrow = new THREE.ArrowHelper(dir, new THREE.Vector3(from[0],from[1],from[2]), len, col(obj.color), headLen, headWid);
+            scene.add(arrow);
+            sceneObjects.push(arrow);
+          }
+          break;
+        }
+        case 'curve': {
+          const tMin = obj.tMin!=null ? obj.tMin : 0;
+          const tMax = obj.tMax!=null ? obj.tMax : 1;
+          const segs = obj.segments || 100;
+          const pts = [];
+          for(let i=0; i<=segs; i++){
+            const t = tMin + (tMax - tMin) * i / segs;
+            const e = buildEnv(t);
+            const x = resolveVal(obj.expr.x, e);
+            const y = resolveVal(obj.expr.y, e);
+            const z = resolveVal(obj.expr.z, e);
+            if(isFinite(x) && isFinite(y) && isFinite(z)) pts.push(new THREE.Vector3(x,y,z));
+          }
+          if(pts.length > 1){
+            const geo = new THREE.BufferGeometry().setFromPoints(pts);
+            const mat = new THREE.LineBasicMaterial({ color: col(obj.color) || 0xc084fc });
+            const line = new THREE.Line(geo, mat);
+            scene.add(line);
+            sceneObjects.push(line);
+          }
+          break;
+        }
+      }
+    } catch(e) { /* skip invalid object */ }
+  });
+
+  // Trace trajectory
+  if(B.trace && B.param){
+    const tr = B.trace;
+    const samples = tr.samples || 160;
+    const tracePts = [];
+    for(let i=0; i<=samples; i++){
+      const v = paramMin + (paramMax - paramMin) * i / samples;
+      const e = buildEnv(v);
+      const pos = resolvePos(tr.of, e);
+      if(isFinite(pos[0]) && isFinite(pos[1]) && isFinite(pos[2])) tracePts.push(new THREE.Vector3(pos[0], pos[1], pos[2]));
+    }
+    if(tracePts.length > 1){
+      const geo = new THREE.BufferGeometry().setFromPoints(tracePts);
+      // Use dashed line for trace
+      const mat = new THREE.LineDashedMaterial({ color: col(tr.color) || 0xc084fc, dashSize: 0.08, gapSize: 0.06, linewidth: 1 });
+      const line = new THREE.Line(geo, mat);
+      line.computeLineDistances();
+      scene.add(line);
+      sceneObjects.push(line);
+    }
+  }
+
+  // Update readouts
+  renderReadouts(env);
+}
+
+// ===== Slider event =====
+slider.addEventListener('input', function(){
+  const v = parseFloat(this.value);
+  buildScene3D(v);
+});
+
+// ===== Resize =====
+function onResize(){
+  const w = viewport.clientWidth;
+  const h = viewport.clientHeight;
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  if(renderer) renderer.setSize(w, h);
+}
+window.addEventListener('resize', onResize);
+
+// ===== Animation loop =====
+function animate(){
+  requestAnimationFrame(animate);
+  if(controls) controls.update();
+  if(renderer) renderer.render(scene, camera);
+}
+if(renderer) animate();
+
+// ===== Steps =====
+(function(){
+  const panel = document.getElementById('steps-body');
+  const toggle = document.getElementById('steps-toggle');
+  const icon = document.getElementById('steps-icon');
+  let visible = false;
+  toggle.addEventListener('click', ()=>{
+    visible = !visible;
+    panel.style.display = visible ? 'block' : 'none';
+    icon.style.transform = visible ? 'rotate(180deg)' : '';
+  });
+  if(S.length){
+    panel.innerHTML = S.map((step, i) => {
+      const active = i===0 ? 'active' : '';
+      return `<div class="step-card ${active}">
+        <div class="step-header" onclick="toggleStep(this)">${step.title||'步骤'+(i+1)}<span class="step-icon">▼</span></div>
+        <div class="step-body" style="display:${i===0?'block':'none'}">${step.content||''}</div>
+      </div>`;
+    }).join('');
+    renderMath(panel);
+  } else {
+    toggle.style.display = 'none';
+  }
+})();
+window.toggleStep = function(header){
+  const card = header.parentElement;
+  const body = card.querySelector('.step-body');
+  const wasActive = card.classList.contains('active');
+  card.classList.toggle('active');
+  body.style.display = wasActive ? 'none' : 'block';
+};
+
+// ===== Init =====
+buildScene3D(parseFloat(slider.value));
+onResize();
+</script>
+</body>
+</html>

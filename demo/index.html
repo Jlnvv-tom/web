@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>DJI Osmo Action 4 · 3D 拆解可视化</title>
+<meta name="description" content="基于 Three.js 的 DJI Osmo Action 4 三维拆解可视化：点击部件触发拆解动画，自由旋转缩放视角，查看部件参数详情。" />
+<link rel="stylesheet" href="./css/style.css" />
+<script type="importmap">
+{
+  "imports": {
+    "three": "./js/vendor/three.module.js"
+  }
+}
+</script>
+</head>
+<body>
+
+<!-- ===================== 3D 画布 ===================== -->
+<div id="stage">
+  <canvas id="scene"></canvas>
+  <svg id="leaders"></svg>
+  <div id="labels"></div>
+</div>
+
+<!-- ===================== 顶部标题 ===================== -->
+<header id="brand">
+  <div class="brand-mark">
+    <span class="dot"></span>
+    <span class="brand-text">ACTION&nbsp;4<em>· EXPLODED VIEW</em></span>
+  </div>
+  <h1>DJI Osmo Action 4 <span>三维拆解可视化</span></h1>
+  <p class="brand-sub">
+    1/1.3" CMOS · 155° FOV · 4K/120fps · 双触控屏 · 1770 mAh · IP68 18m ·
+    <b>15</b> 个核心部件，全部由代码程序化生成
+  </p>
+</header>
+
+<!-- ===================== 左侧部件清单 ===================== -->
+<aside id="inventory" class="panel">
+  <div class="panel-head">
+    <h2>部件清单</h2>
+    <span class="badge" id="partCount">15</span>
+  </div>
+  <div class="panel-tip">点击列表项可定位并高亮对应部件</div>
+  <ul id="partList"></ul>
+</aside>
+
+<!-- ===================== 右侧详情面板 ===================== -->
+<aside id="detail" class="panel">
+  <div class="panel-head">
+    <h2>部件详情</h2>
+    <button id="detailClose" class="icon-btn" title="关闭">✕</button>
+  </div>
+  <div id="detailBody">
+    <div class="detail-empty">
+      <div class="detail-empty-icon">◉</div>
+      <p>在模型上<b>点击任意部件</b>，<br />或从左侧清单中选择，<br />查看该部件的参数与说明。</p>
+    </div>
+  </div>
+</aside>
+
+<!-- ===================== 底部控制栏 ===================== -->
+<div id="toolbar">
+  <button class="tool primary" id="btnExplode" title="拆解 / 组装（空格）">
+    <span class="ico">⤢</span><span id="explodeLabel">拆解</span>
+  </button>
+  <button class="tool" id="btnDemo" title="自动拆解并逐件讲解"><span class="ico">▶</span>一键演示</button>
+  <button class="tool" id="btnSpin" data-on="false" title="自动旋转"><span class="ico">⟳</span>自动旋转</button>
+  <button class="tool" id="btnXray" data-on="false" title="透视模式：半透明外壳"><span class="ico">◐</span>透视模式</button>
+  <button class="tool" id="btnLabels" data-on="true" title="显示 / 隐藏部件标注"><span class="ico">⌗</span>部件标注</button>
+  <button class="tool" id="btnReset" title="重置视角（R）"><span class="ico">⌂</span>重置视角</button>
+</div>
+
+<!-- ===================== 操作提示 ===================== -->
+<div id="hints">
+  <span><b>左键拖拽</b> 旋转</span>
+  <span><b>滚轮</b> 缩放</span>
+  <span><b>右键 / 双指</b> 平移</span>
+  <span><b>单击部件</b> 高亮 + 拆解</span>
+  <span><b>Esc</b> 取消选中</span>
+</div>
+
+<div id="statusbar">
+  <span class="st"><i class="k">视图</i><i class="v" id="stView">组装</i></span>
+  <span class="st"><i class="k">选中</i><i class="v" id="stSel">—</i></span>
+  <span class="st"><i class="k">帧率</i><i class="v" id="stFps">—</i></span>
+</div>
+
+<!-- ===================== 加载页 ===================== -->
+<div id="loader">
+  <div class="loader-box">
+    <div class="loader-ring"></div>
+    <div class="loader-title">正在生成 DJI Osmo Action 4 三维模型</div>
+    <div class="loader-sub" id="loadStep">初始化渲染器…</div>
+    <div class="loader-bar"><i id="loadFill"></i></div>
+  </div>
+</div>
+
+<!-- ===================== 操作引导 ===================== -->
+<div id="guide">
+  <div class="guide-card">
+    <div class="guide-step-dots" id="guideDots"></div>
+    <div class="guide-body">
+      <div class="guide-ico" id="guideIco">①</div>
+      <h3 id="guideTitle">旋转视角</h3>
+      <p id="guideText">按住左键拖拽即可 360° 旋转机身，滚轮缩放，右键平移。</p>
+    </div>
+    <div class="guide-actions">
+      <button class="ghost" id="guideSkip">跳过引导</button>
+      <button class="primary" id="guideNext">下一步</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== 演示提示 ===================== -->
+<div id="demoToast"><span class="ico">▶</span><span id="demoToastText">自动演示中，点击任意处退出</span></div>
+
+<script type="module" src="./js/main.js"></script>
+</body>
+</html>
