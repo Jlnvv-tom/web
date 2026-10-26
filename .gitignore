@@ -1,0 +1,13 @@
+# macOS
+.DS_Store
+
+# 仓库迁移备份（勿入库）
+.git-backup-*.tar.gz
+
+# 工具与缓存
+.workbuddy/
+__pycache__/
+*.pyc
+
+# 各目录下的 shots/ 均为自动生成的运行截图
+shots/

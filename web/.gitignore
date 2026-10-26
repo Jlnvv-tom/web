@@ -19,8 +19,5 @@ harness/.pw-profile
 swc.tgz
 .next
 .pw-profile
-docs/
-demo/
-shots/
 .workbuddy/__pycache__/
 __pycache__/
